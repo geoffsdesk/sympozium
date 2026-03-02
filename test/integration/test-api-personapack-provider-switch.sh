@@ -69,25 +69,64 @@ url_with_namespace() {
 api_request() {
   local method="$1" path="$2" body="${3:-}"
   local url="$(url_with_namespace "$path")"
-  local tmp="$(mktemp)"
   local -a headers=(-H "Content-Type: application/json")
   [[ -n "$APISERVER_TOKEN" ]] && headers+=(-H "Authorization: Bearer ${APISERVER_TOKEN}")
 
-  local code
-  if [[ -n "$body" ]]; then
-    code="$(curl -sS -o "$tmp" -w "%{http_code}" -X "$method" "${headers[@]}" --data "$body" "$url")"
-  else
-    code="$(curl -sS -o "$tmp" -w "%{http_code}" -X "$method" "${headers[@]}" "$url")"
-  fi
-  local resp="$(cat "$tmp")"
-  rm -f "$tmp"
+  local attempts=3
+  local delay=1
+  local attempt=1
+  local code=""
+  local resp=""
 
-  if [[ "$code" -lt 200 || "$code" -ge 300 ]]; then
+  while [[ "$attempt" -le "$attempts" ]]; do
+    local tmp
+    tmp="$(mktemp)"
+
+    if [[ -n "$body" ]]; then
+      if ! code="$(curl -sS -o "$tmp" -w "%{http_code}" -X "$method" "${headers[@]}" --data "$body" "$url")"; then
+        rm -f "$tmp"
+        if [[ "$attempt" -lt "$attempts" ]]; then
+          sleep "$delay"
+          attempt=$((attempt + 1))
+          continue
+        fi
+        fail "API ${method} ${path} failed (network error after ${attempts} attempts)"
+        return 1
+      fi
+    else
+      if ! code="$(curl -sS -o "$tmp" -w "%{http_code}" -X "$method" "${headers[@]}" "$url")"; then
+        rm -f "$tmp"
+        if [[ "$attempt" -lt "$attempts" ]]; then
+          sleep "$delay"
+          attempt=$((attempt + 1))
+          continue
+        fi
+        fail "API ${method} ${path} failed (network error after ${attempts} attempts)"
+        return 1
+      fi
+    fi
+
+    resp="$(cat "$tmp")"
+    rm -f "$tmp"
+
+    if [[ "$code" -ge 200 && "$code" -lt 300 ]]; then
+      printf "%s" "$resp"
+      return 0
+    fi
+
+    if [[ "$attempt" -lt "$attempts" && "$code" -ge 500 ]]; then
+      sleep "$delay"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
     fail "API ${method} ${path} failed (HTTP ${code})"
     echo "$resp"
     return 1
-  fi
-  printf "%s" "$resp"
+  done
+
+  fail "API ${method} ${path} failed (exhausted retries)"
+  return 1
 }
 
 resolve_apiserver_token() {
