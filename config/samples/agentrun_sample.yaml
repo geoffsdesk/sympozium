@@ -11,14 +11,12 @@ spec:
   sessionKey: "session-abc123"
   task: "Review the latest pull request and provide feedback on code quality"
   model:
-    name: gpt-4o
-    provider: openai
-    # baseURL: https://api.githubcopilot.com  # uncomment for GitHub Copilot
-    # baseURL: http://ollama.default.svc:11434/v1  # uncomment for Ollama
+    name: gemini-2.0-flash
+    provider: vertexai
     maxTokens: 128000
   sandbox:
     enabled: true
-    image: ghcr.io/alexsjones/sympozium/sandbox:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/sandbox:latest
   skills:
     - code-review
   toolPolicy:

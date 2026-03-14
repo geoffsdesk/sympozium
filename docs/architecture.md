@@ -24,15 +24,12 @@ graph TB
             SROUTER -- "creates / updates<br/>SympoziumSchedule CRDs" --> CS
         end
 
-        subgraph CH["Channel Pods  ·  one Deployment per type"]
-            TG["Telegram"]
-            SL["Slack"]
-            DC["Discord"]
-            WA["WhatsApp"]
+        subgraph CH["Channel Pods  ·  Google Chat Deployment"]
+            GC["Google Chat"]
         end
 
         subgraph WE["Web Endpoints  ·  long-lived Deployments"]
-            WP["Web Proxy<br/><small>OpenAI-compat API + MCP</small>"]
+            WP["Web Proxy<br/><small>Vertex AI-compatible API + MCP</small>"]
             GW["Envoy Gateway<br/><small>HTTPRoute per instance</small>"]
             GW -- "routes traffic" --> WP
         end
@@ -79,8 +76,8 @@ graph TB
         NATS -- "schedule.upsert" --> SROUTER
     end
 
-    USER(["User / Chat Client"]) -- "Telegram · Slack<br/>Discord · WhatsApp" --> CH
-    HTTPUSER(["HTTP / API Client"]) -- "REST · MCP<br/>OpenAI-compat" --> GW
+    USER(["User / Chat Client"]) -- "Google Chat" --> CH
+    HTTPUSER(["HTTP / API Client"]) -- "REST · MCP<br/>Vertex AI-compatible" --> GW
     ADMIN(["Operator / SRE"]) -- "sympozium TUI · Web UI<br/>kubectl · k9s" --> CP
 
     style K8S fill:#0d1117,stroke:#30363d,color:#c9d1d9
@@ -100,11 +97,11 @@ graph TB
 
 ## How It Works
 
-1. **A message arrives** via a channel pod (Telegram, Slack, etc.) and is published to the NATS event bus.
+1. **A message arrives** via a Google Chat channel pod and is published to the NATS event bus.
 2. **The controller creates an AgentRun CR**, which reconciles into an ephemeral K8s Job — an agent container + IPC bridge sidecar + optional sandbox + skill sidecars (with auto-provisioned RBAC).
-3. **The agent container** calls the configured LLM provider (OpenAI, Anthropic, Azure, Ollama, or any OpenAI-compatible endpoint), with skills mounted as files, persistent memory injected from a ConfigMap, and tool sidecars providing runtime capabilities like `kubectl`.
+3. **The agent container** calls Vertex AI (Google Cloud) for LLM inference, with skills mounted as files, persistent memory injected from a ConfigMap, and tool sidecars providing runtime capabilities like `kubectl`.
 4. **Results flow back** through the IPC bridge → NATS → channel pod → user. The controller extracts structured results and memory updates from pod logs.
-5. **Web endpoints** expose agents as HTTP APIs. When an instance has the `web-endpoint` skill, the controller creates a long-lived Deployment (serving mode) with a web-proxy sidecar. The proxy accepts OpenAI-compatible (`/v1/chat/completions`) and MCP (`/sse`, `/message`) requests, creating per-request AgentRun Jobs. An Envoy Gateway with per-instance HTTPRoutes provides external access with TLS.
+5. **Web endpoints** expose agents as HTTP APIs. When an instance has the `web-endpoint` skill, the controller creates a long-lived Deployment (serving mode) with a web-proxy sidecar. The proxy accepts Vertex AI-compatible (`/v1/chat/completions`) and MCP (`/sse`, `/message`) requests, creating per-request AgentRun Jobs. An Envoy Gateway with per-instance HTTPRoutes provides external access with TLS.
 6. **Everything is a Kubernetes resource** — instances, runs, policies, skills, and schedules are all CRDs. Lifecycle is managed by controllers. Access is gated by admission webhooks. Network isolation is enforced by NetworkPolicy. The TUI and web dashboard give you full visibility into the entire system.
 
 ---
@@ -155,7 +152,7 @@ sympozium/
 │   ├── controller/         # Controller manager (reconciles all CRDs)
 │   ├── apiserver/          # HTTP + WebSocket API server (+ embedded web UI)
 │   ├── ipc-bridge/         # IPC bridge sidecar (fsnotify → NATS)
-│   ├── web-proxy/          # Web proxy (OpenAI-compat API + MCP gateway)
+│   ├── web-proxy/          # Web proxy (Vertex AI-compat API + MCP gateway)
 │   ├── webhook/            # Admission webhook (policy enforcement)
 │   └── sympozium/          # CLI + interactive TUI
 ├── web/                    # Web dashboard (React + TypeScript + Vite)
@@ -166,7 +163,7 @@ sympozium/
 │   ├── eventbus/           # NATS JetStream event bus
 │   ├── ipc/                # IPC bridge (fsnotify + NATS)
 │   ├── webhook/            # Policy enforcement webhooks
-│   ├── webproxy/           # Web proxy handlers (OpenAI, MCP, rate limiting)
+│   ├── webproxy/           # Web proxy handlers (Vertex AI, MCP, rate limiting)
 │   ├── session/            # Session persistence (PostgreSQL)
 │   └── channel/            # Channel base types
 ├── channels/               # Channel pod implementations

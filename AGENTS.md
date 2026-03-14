@@ -6,11 +6,13 @@ This file helps AI coding agents (Copilot, Cursor, Cline, etc.) understand the S
 
 ## Project Overview
 
-Sympozium is a **Kubernetes-native agent orchestration platform** written in Go. Every AI agent runs as an ephemeral Kubernetes pod (Job), with policy enforcement via CRDs, admission webhooks, and RBAC. Communication flows through NATS JetStream and a filesystem-based IPC bridge.
+Sympozium is a **GCP-native, Kubernetes-native agent orchestration platform** written in Go. Optimized for Google Cloud with Vertex AI as the primary LLM provider and GKE (Google Kubernetes Engine) as the target platform. Every AI agent runs as an ephemeral Kubernetes pod (Job), with policy enforcement via CRDs, admission webhooks, and RBAC. Communication flows through NATS JetStream and a filesystem-based IPC bridge.
 
 - **Language:** Go 1.25+
 - **Module:** `github.com/alexsjones/sympozium`
 - **K8s API version:** `sympozium.ai/v1alpha1`
+- **LLM Provider:** Vertex AI (Google Cloud)
+- **Container Registry:** us-docker.pkg.dev/sympozium/sympozium (Artifact Registry)
 
 ---
 
@@ -84,9 +86,10 @@ make manifests   # CRD YAML only
 
 - Go 1.25+
 - Docker
-- [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker)
+- GCP Project with GKE cluster (or local Kind cluster)
 - kubectl
-- An LLM API key (e.g. `OPENAI_API_KEY`)
+- GCP Vertex AI enabled
+- gcloud CLI configured with credentials
 
 ### Create a Kind Cluster & Install Sympozium
 
@@ -100,11 +103,12 @@ make install
 # Build all images
 make docker-build TAG=v0.1.0
 
-# Load images into Kind (all components)
+# Push images to GCP Artifact Registry
 for img in controller apiserver ipc-bridge webhook agent-runner web-proxy \
-           channel-telegram channel-slack channel-discord channel-whatsapp \
+           channel-google-chat \
            skill-k8s-ops skill-sre-observability skill-llmfit; do
-  kind load docker-image ghcr.io/alexsjones/sympozium/$img:v0.1.0 --name kind
+  docker tag localhost:5000/sympozium/$img:v0.1.0 us-docker.pkg.dev/sympozium/sympozium/$img:v0.1.0
+  docker push us-docker.pkg.dev/sympozium/sympozium/$img:v0.1.0
 done
 
 # Deploy the control plane
@@ -122,9 +126,10 @@ make build
 # Run unit tests
 make test
 
-# Build specific image + reload into Kind
+# Build specific image + push to Artifact Registry
 make docker-build-agent-runner TAG=v0.1.0
-kind load docker-image ghcr.io/alexsjones/sympozium/agent-runner:v0.1.0 --name kind
+docker tag localhost:5000/sympozium/agent-runner:v0.1.0 us-docker.pkg.dev/sympozium/sympozium/agent-runner:v0.1.0
+docker push us-docker.pkg.dev/sympozium/sympozium/agent-runner:v0.1.0
 
 # Restart the controller to pick up new images
 kubectl rollout restart deployment sympozium-controller-manager -n sympozium-system
@@ -171,11 +176,10 @@ TEST_MODEL=gpt-5.2 TEST_TIMEOUT=180 ./test/integration/test-write-file.sh
 | Test | What it validates |
 |------|-------------------|
 | `test-write-file.sh` | `write_file` tool — agent writes a file, script verifies content |
-| `test-anthropic-write-file.sh` | `write_file` tool using Anthropic provider — validates provider parity |
+| `test-vertexai-write-file.sh` | `write_file` tool using Vertex AI provider — validates GCP integration |
 | `test-k8s-ops-nodes.sh` | `k8s-ops` skill — agent runs kubectl via sidecar |
 | `test-llmfit-cluster-fit.sh` | `llmfit` skill — agent runs node-level llmfit placement probe workflow |
-| `test-telegram-channel.sh` | Telegram channel deployment + message flow |
-| `test-slack-channel.sh` | Slack channel deployment (Socket Mode) |
+| `test-google-chat-channel.sh` | Google Chat channel deployment + message flow |
 | `test-web-proxy-api.sh` | Web proxy API — healthz, auth, models, chat completions (blocking + streaming), MCP SSE |
 
 ### Writing New Tests
@@ -201,7 +205,7 @@ The agent-runner has 7 built-in tools defined in `cmd/agent-runner/tools.go`:
 | `read_file` | Native | Read file contents |
 | `write_file` | Native | Write/create files |
 | `list_directory` | Native | List directory contents |
-| `send_channel_message` | IPC (bridge) | Send messages to Telegram/Slack/Discord/WhatsApp |
+| `send_channel_message` | IPC (bridge) | Send messages to Google Chat |
 | `fetch_url` | Native | HTTP GET a URL and return the body |
 | `schedule_task` | IPC (bridge) | Create/update/suspend/resume/delete SympoziumSchedule CRDs |
 

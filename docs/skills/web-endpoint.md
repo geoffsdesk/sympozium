@@ -1,6 +1,6 @@
 # Web Endpoint Skill (`web-endpoint`)
 
-The `web-endpoint` SkillPack exposes a Sympozium agent as an HTTP API with OpenAI-compatible and MCP endpoints.
+The `web-endpoint` SkillPack exposes a Sympozium agent as an HTTP API with Vertex AI-compatible and MCP endpoints.
 
 It deploys a web-proxy sidecar as a long-running Deployment that accepts incoming HTTP requests and creates per-request AgentRun Jobs — turning any agent into a callable API.
 
@@ -9,7 +9,7 @@ It deploys a web-proxy sidecar as a long-running Deployment that accepts incomin
 ## What it installs
 
 - SkillPack manifest: `config/skills/web-endpoint.yaml`
-- Sidecar image: `ghcr.io/alexsjones/sympozium/web-proxy:latest`
+- Sidecar image: `us-docker.pkg.dev/sympozium/sympozium/web-proxy:latest`
 - Sidecar source: `cmd/web-proxy/` + `internal/webproxy/`
 
 Helm bundled copy:
@@ -33,7 +33,7 @@ When a request arrives, the web-proxy creates a new AgentRun Job to handle it, w
 
 ## Endpoints
 
-### OpenAI-Compatible Chat Completions
+### Vertex AI-Compatible Chat Completions
 
 ```
 POST /v1/chat/completions

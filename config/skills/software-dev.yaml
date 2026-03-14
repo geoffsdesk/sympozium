@@ -181,23 +181,21 @@ spec:
           - list_directory
 
   sidecar:
-    image: ghcr.io/alexsjones/sympozium/skill-github-gitops:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/skill-gcp-gitops:latest
     command:
       - /usr/local/bin/tool-executor.sh
     mountWorkspace: true
     env:
-      - name: GH_NO_UPDATE_NOTIFIER
-        value: "1"
       - name: GIT_AUTHOR_NAME
         value: "Sympozium Agent"
       - name: GIT_AUTHOR_EMAIL
-        value: "sympozium@users.noreply.github.com"
+        value: "sympozium@gcp.sympozium.ai"
       - name: GIT_COMMITTER_NAME
         value: "Sympozium Agent"
       - name: GIT_COMMITTER_EMAIL
-        value: "sympozium@users.noreply.github.com"
+        value: "sympozium@gcp.sympozium.ai"
     resources:
       cpu: "100m"
       memory: "256Mi"
-    secretRef: github-gitops-token
-    secretMountPath: /secrets/github-token
+    secretRef: gcp-gitops-token
+    secretMountPath: /secrets/gcp-token

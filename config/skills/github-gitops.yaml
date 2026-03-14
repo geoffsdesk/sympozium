@@ -1,7 +1,7 @@
 apiVersion: sympozium.ai/v1alpha1
 kind: SkillPack
 metadata:
-  name: github-gitops
+  name: gcp-gitops
   namespace: sympozium-system
   labels:
     app.kubernetes.io/part-of: sympozium
@@ -11,24 +11,24 @@ spec:
   version: "1.0.0"
   source: builtin
   skills:
-    - name: github-gitops
+    - name: gcp-gitops
       description: |
-        GitOps skill that enables agents to interact with GitHub repositories.
+        GitOps skill that enables agents to interact with GCP Cloud Source Repositories.
         Agents can open Pull Requests or Issues for cluster findings, with
         automatic deduplication to prevent duplicate submissions.
       content: |
-        # GitHub GitOps Skill
+        # GCP GitOps Skill
 
-        You have access to the GitHub CLI (`gh`) via the `execute_command` tool.
+        You have access to the gcloud CLI via the `execute_command` tool.
         The environment variable `SKILL_REPO` contains the target repository
-        (e.g. `org/repo`). Additional context is available in:
+        (e.g. `project-id/repo-name`). Additional context is available in:
         - `SKILL_DEFAULT_BRANCH` — branch to target when opening PRs (default: `main`)
         - `SKILL_LABELS` — comma-separated labels to apply to new issues/PRs
-        - `SKILL_REVIEWERS` — comma-separated GitHub logins of requested reviewers
+        - `SKILL_REVIEWERS` — comma-separated email addresses of requested reviewers
 
         ## Workflow
 
-        When you discover a cluster issue that warrants GitHub action, follow these
+        When you discover a cluster issue that warrants GCP action, follow these
         steps **in order**:
 
         ### Step 1 — Classify: Issue or PR?
@@ -49,8 +49,7 @@ spec:
         Before creating anything, run:
 
         ```bash
-        gh issue list --repo "$SKILL_REPO" --label "sympozium-fp:<fingerprint>" --state all --json number,title,state
-        gh pr list --repo "$SKILL_REPO" --label "sympozium-fp:<fingerprint>" --state all --json number,title,state
+        gcloud source repos describe "$SKILL_REPO" --format='value(issues)'
         ```
 
         Where fingerprint = sympozium_fingerprint "<resource-kind>/<name>/<finding-type>"
@@ -62,11 +61,10 @@ spec:
         ### Step 3 — Create with fingerprint label
 
         **Opening a PR:**
-        Clone the repo, create a branch, push changes, then:
-        gh pr create --repo "$SKILL_REPO" --base "${SKILL_DEFAULT_BRANCH:-main}" --head "$BRANCH" --title "<title>" --body "<body>" --label "sympozium,sympozium-fp:<fingerprint>"
+        Clone the repo, create a branch, push changes, then use gcloud to open the PR.
 
         **Opening an Issue:**
-        gh issue create --repo "$SKILL_REPO" --title "<title>" --body "<body>" --label "sympozium,sympozium-fp:<fingerprint>"
+        Use gcloud issues create command with title and body.
 
         ### Step 4 — Report outcome
 
@@ -74,23 +72,21 @@ spec:
         with a summary including the PR/Issue URL.
 
   sidecar:
-    image: ghcr.io/alexsjones/sympozium/skill-github-gitops:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/skill-gcp-gitops:latest
     command:
       - /usr/local/bin/tool-executor.sh
     mountWorkspace: true
     env:
-      - name: GH_NO_UPDATE_NOTIFIER
-        value: "1"
       - name: GIT_AUTHOR_NAME
         value: "Sympozium Agent"
       - name: GIT_AUTHOR_EMAIL
-        value: "sympozium@users.noreply.github.com"
+        value: "sympozium@gcp.sympozium.ai"
       - name: GIT_COMMITTER_NAME
         value: "Sympozium Agent"
       - name: GIT_COMMITTER_EMAIL
-        value: "sympozium@users.noreply.github.com"
+        value: "sympozium@gcp.sympozium.ai"
     resources:
       cpu: "50m"
       memory: "128Mi"
-    secretRef: github-gitops-token
-    secretMountPath: /secrets/github-token
+    secretRef: gcp-gitops-token
+    secretMountPath: /secrets/gcp-token

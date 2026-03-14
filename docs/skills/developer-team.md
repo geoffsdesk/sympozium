@@ -17,7 +17,7 @@ The `developer-team` PersonaPack provides a 2-pizza software development team (7
 ## Prerequisites
 
 - **GitHub token**: A personal access token or GitHub App with `repo` scope, stored as a Kubernetes secret named `github-gitops-token`
-- **AI provider**: An API key for OpenAI, Anthropic, Azure, or Ollama
+- **AI provider**: GCP Vertex AI credentials
 
 ## Quick Start
 
@@ -40,8 +40,8 @@ sympozium
 kubectl apply -f config/personas/developer-team.yaml
 
 # 2. Create the AI provider secret
-kubectl create secret generic dev-team-openai-key \
-  --from-literal=OPENAI_API_KEY=sk-... \
+kubectl create secret generic dev-team-gcp-creds \
+  --from-file=key.json=gcp-service-account.json \
   -n sympozium-system
 
 # 3. Create the GitHub token secret
@@ -53,7 +53,7 @@ kubectl create secret generic github-gitops-token \
 kubectl patch personapack developer-team -n sympozium-system --type=merge -p '{
   "spec": {
     "enabled": true,
-    "authRefs": [{"provider": "openai", "secret": "dev-team-openai-key"}]
+    "authRefs": [{"provider": "vertexai", "secret": "dev-team-gcp-creds"}]
   }
 }'
 ```

@@ -53,7 +53,7 @@ Every agent pod has these tools available out of the box (no skill sidecar requi
 | `llmfit` | SRE | `llmfit`, `kubectl`, `jq` | Node-level model placement analysis | **Alpha** |
 | `incident-response` | SRE | yes | Structured incident triage — gather context, diagnose root cause, suggest remediation | **Alpha** |
 | `code-review` | Development | — | Code review guidelines and best practices | **Alpha** |
-| `web-endpoint` | Connectivity | `web-proxy` | Expose agents as HTTP APIs — OpenAI-compatible and MCP | **Alpha** |
+| `web-endpoint` | Connectivity | `web-proxy` | Expose agents as HTTP APIs — Vertex AI-compatible and MCP | **Alpha** |
 
 ## Toggling Skills
 

@@ -8,9 +8,9 @@ DevOps workflows.
 
 ## Prerequisites
 
-- A running Kubernetes cluster (Kind, minikube, EKS, GKE, AKS, etc.)
+- A running GCP GKE cluster
 - `kubectl` configured and pointing at the cluster
-- An LLM API key (OpenAI, Anthropic, Azure OpenAI, or a local Ollama instance)
+- A GCP project with Vertex AI enabled and appropriate credentials
 
 ## Install
 
@@ -85,10 +85,10 @@ Press **Enter** on a pack to start the activation wizard:
 | Step | What it does |
 |------|-------------|
 | **1 — Pick personas** | Review the personas in the pack, deselect any you don't need |
-| **2 — Provider** | Choose your LLM provider (OpenAI, Anthropic, Azure OpenAI, Ollama, or custom endpoint) |
-| **3 — API key** | Paste your API key (stored as a Kubernetes Secret) |
-| **4 — Model** | Pick a model (e.g. `gpt-4o`, `claude-sonnet-4-20250514`, `llama3`) |
-| **5 — Channels** | Optionally bind messaging channels (Telegram, Slack, Discord, WhatsApp) |
+| **2 — Provider** | Vertex AI (GCP) |
+| **3 — Credentials** | Provide GCP service account credentials (stored as a Kubernetes Secret) |
+| **4 — Model** | Pick a model (e.g. `gemini-2.0-flash`) |
+| **5 — Channels** | Optionally bind Google Chat channel |
 | **6 — Confirm** | Review and apply — the controller creates all agents automatically |
 
 Within seconds you'll have multiple agents running on schedules, each with
@@ -119,9 +119,9 @@ The wizard walks you through six steps:
 
 | Step | What it does |
 |------|--------------|
-| **1 — Cluster check** | Verifies the cluster is reachable and Sympozium is installed. Offers to run `sympozium install` if CRDs are missing. |
-| **2 — Provider** | Choose your LLM provider (OpenAI, Anthropic, Azure OpenAI, Ollama, or any OpenAI-compatible endpoint). Enter a base URL if needed, then paste your API key. |
-| **3 — Channel** | Optionally connect a messaging channel (Telegram, Slack, Discord, WhatsApp) or skip for now. |
+| **1 — Cluster check** | Verifies the GKE cluster is reachable and Sympozium is installed. Offers to run `sympozium install` if CRDs are missing. |
+| **2 — Provider** | Configure Vertex AI (GCP) as the LLM provider. Provide GCP service account credentials. |
+| **3 — Channel** | Optionally connect a Google Chat channel or skip for now. |
 | **4 — Policy** | Choose a policy preset: **Permissive** (everything allowed), **Default** (commands require approval), or **Restrictive** (very locked-down). |
 | **5 — Heartbeat** | Pick how often the agent should wake up on its own: every 30 min, hourly (recommended), every 6 hours, daily at 9 AM, or disabled. |
 | **6 — Confirm** | Review a summary of your choices and apply. |
@@ -240,7 +240,7 @@ Every agent pod ships with these seven tools:
 | `read_file` | Read a file from the pod filesystem |
 | `write_file` | Create or overwrite a file |
 | `list_directory` | List directory contents |
-| `send_channel_message` | Send a message to Telegram / Slack / Discord / WhatsApp |
+| `send_channel_message` | Send a message to Google Chat |
 | `fetch_url` | HTTP GET a URL and return the body |
 | `schedule_task` | Create, update, suspend, or delete SympoziumSchedule CRDs |
 
@@ -279,7 +279,7 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o
+      model: gemini-2.0-flash
   skills:
     - skillPackRef: k8s-ops
     - skillPackRef: incident-response
@@ -342,7 +342,7 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o
+      model: gemini-2.0-flash
   skills:
     - skillPackRef: code-review
     - skillPackRef: k8s-ops
@@ -403,7 +403,7 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o
+      model: gemini-2.0-flash
   skills:
     - skillPackRef: k8s-ops
     - skillPackRef: code-review
@@ -461,7 +461,7 @@ SympoziumInstance:
 | **incident-response** | SRE | Structured incident triage, log analysis, rollback procedures. |
 | **code-review** | Development | Code review checklist, security anti-patterns, Go-specific review patterns. |
 | **llmfit** | SRE | Node-level model placement analysis. Runs llmfit probes per node and ranks best nodes for requested models. Comes with a sidecar containing `llmfit`, `kubectl`, and `jq`. |
-| **web-endpoint** | Connectivity | Expose agents as HTTP APIs — OpenAI-compatible chat completions and MCP protocol. Deploys a long-lived web-proxy sidecar with bearer-token auth and rate limiting. See [Web Endpoint Skill](skills/web-endpoint.md). |
+| **web-endpoint** | Connectivity | Expose agents as HTTP APIs — Vertex AI-compatible chat completions and MCP protocol. Deploys a long-lived web-proxy sidecar with bearer-token auth and rate limiting. See [Web Endpoint Skill](skills/web-endpoint.md). |
 
 Apply them from the `config/skills/` directory:
 
@@ -480,8 +480,7 @@ Connect your agent to a messaging platform so you can interact over chat:
 
 | Channel | How to connect |
 |---------|----------------|
-| **Telegram** | Create a bot with [@BotFather](https://t.me/BotFather), get the token, pass it during onboarding or set it in the SympoziumInstance channel config. |
-| **Slack** | Create a Slack app with Socket Mode enabled, add the bot/app token during onboarding. |
+| **Google Chat** | Create a service account in GCP, grant it Google Chat API permissions, pass credentials during onboarding or set it in the SympoziumInstance channel config. |
 | **Discord** | Create a Discord bot, grab the token, and connect it during onboarding. |
 | **WhatsApp** | Use the WhatsApp Business API — Sympozium displays a QR code in the TUI for pairing. |
 
@@ -535,8 +534,8 @@ spec:
   instanceRef: devops
   task: "How many nodes are in the cluster and what are their roles?"
   model:
-    name: gpt-4o
-    provider: openai
+    name: gemini-2.0-flash
+    provider: vertexai
   skills:
     - k8s-ops
   timeout: "5m"
@@ -633,7 +632,7 @@ networkPolicies:
 Then upgrade:
 
 ```bash
-helm upgrade sympozium oci://ghcr.io/alexsjones/sympozium/charts/sympozium \
+helm upgrade sympozium oci://us-docker.pkg.dev/sympozium/sympozium/charts/sympozium \
   -n sympozium-system -f values.yaml
 ```
 

@@ -1,5 +1,5 @@
 ---
-# Example SympoziumInstance with Telegram and Slack channels
+# Example SympoziumInstance with Google Chat channel
 apiVersion: sympozium.ai/v1alpha1
 kind: SympoziumInstance
 metadata:
@@ -7,18 +7,16 @@ metadata:
   namespace: default
 spec:
   channels:
-    - type: telegram
-      secretRef: alice-telegram-secret
-    - type: slack
-      secretRef: alice-slack-secret
+    - type: googlechat
+      secretRef: alice-googlechat-secret
   agents:
     default:
-      model: gpt-4o
-      image: ghcr.io/alexsjones/sympozium/agent-codex:latest
+      model: gemini-2.0-flash
+      image: us-docker.pkg.dev/sympozium/sympozium/agent-codex:latest
       maxTokens: 128000
     sandbox:
       enabled: true
-      image: ghcr.io/alexsjones/sympozium/sandbox:latest
+      image: us-docker.pkg.dev/sympozium/sympozium/sandbox:latest
       resourceLimits:
         cpu: "2"
         memory: 4Gi
@@ -31,10 +29,8 @@ spec:
     - name: security-audit
   policyRef: default-policy
   authRefs:
-    - provider: github
-      secretName: alice-github-token
-    - provider: openai
-      secretName: alice-openai-key
+    - provider: vertexai
+      secretName: alice-gcp-key
   observability:
     enabled: true
     otlpEndpoint: otel-collector.observability.svc:4317

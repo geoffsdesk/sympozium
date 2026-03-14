@@ -9,11 +9,11 @@
 # Prerequisites:
 #   1. Install Sympozium:  sympozium install
 #   2. Create the API key secret:
-#      kubectl create secret generic dev-team-openai-key \
-#        --from-literal=OPENAI_API_KEY=sk-...
-#   3. Create the GitHub token secret:
-#      kubectl create secret generic github-gitops-token \
-#        --from-literal=github-token=ghp_... \
+#      kubectl create secret generic dev-team-gcp-key \
+#        --from-literal=GOOGLE_API_KEY=sk-...
+#   3. Create the GCP token secret:
+#      kubectl create secret generic gcp-gitops-token \
+#        --from-literal=gcloud-token=ghp_... \
 #        -n sympozium-system
 #   4. Apply this file:  kubectl apply -f personapack-developer-team-github.yaml
 #
@@ -30,13 +30,13 @@ spec:
 
   # AI provider credentials
   authRefs:
-    - provider: openai
-      secret: dev-team-openai-key
+    - provider: vertexai
+      secret: dev-team-gcp-key
 
-  # Target GitHub repository — all personas with the github-gitops skill
+  # Target GCP repository — all personas with the gcp-gitops skill
   # will receive this as SKILL_REPO in their sidecar container.
   skillParams:
-    github-gitops:
+    gcp-gitops:
       repo: "myorg/myapp"
 
   # Team-level objective — prepended to every persona's scheduled task.
@@ -47,13 +47,13 @@ spec:
   personas:
     - name: tech-lead
       displayName: "Tech Lead"
-      model: gpt-4o
+      model: gemini-2.0-flash
       systemPrompt: |
         You are the tech lead of a software development team.
         You coordinate work by triaging issues, reviewing architecture,
         and ensuring PRs meet quality standards before merge.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       schedule:
@@ -67,12 +67,12 @@ spec:
 
     - name: backend-dev
       displayName: "Backend Developer"
-      model: gpt-4o
+      model: gemini-2.0-flash
       systemPrompt: |
         You are a backend software developer. You implement server-side
         features, APIs, data models, and business logic.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       schedule:
@@ -86,12 +86,12 @@ spec:
 
     - name: qa-engineer
       displayName: "QA Engineer"
-      model: gpt-4o
+      model: gemini-2.0-flash
       systemPrompt: |
         You are a QA engineer. You ensure software quality through
         testing, bug discovery, and coverage analysis.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       schedule:

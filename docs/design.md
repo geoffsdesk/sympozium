@@ -36,7 +36,7 @@ Sympozium takes the best of both:
 | Tool/feature gating | In-process tool-policy pipeline (7 layers) | Mount allowlist (external file) | **Admission webhooks** + CRD-based policy |
 | State | Files on disk (~/.openclaw/) | SQLite + files | **etcd (CRDs)** + object storage + PostgreSQL |
 | Multi-instance | Single-instance (file lock) | Single-instance | **Horizontally scalable** (stateless control plane) |
-| Channel connections | In-process per channel | WhatsApp only, in-process | **Channel pods** (one Deployment per channel type) |
+| Channel connections | In-process per channel | Google Chat integration | **Channel pods** (Google Chat Deployment) |
 
 ---
 
@@ -93,7 +93,7 @@ Sympozium takes the best of both:
 
   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
   │ Channel Pod  │ │ Channel Pod  │ │ Channel Pod  │ │ Channel Pod  │
-  │ (Telegram)   │ │ (WhatsApp)   │ │ (Discord)    │ │ (Slack)      │
+  │ (Google Chat)│
   │ Deployment   │ │ StatefulSet  │ │ Deployment   │ │ Deployment   │
   └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
 
@@ -139,11 +139,11 @@ spec:
   # Agent configuration
   agents:
     default:
-      model: claude-opus-4-0-20250514
+      model: gemini-2.0-flash
       thinking: high
       sandbox:
         enabled: true
-        image: ghcr.io/openclaw/sandbox:latest
+        image: us-docker.pkg.dev/sympozium/sympozium/sandbox:latest
         resources:
           requests: { cpu: 250m, memory: 512Mi }
           limits: { cpu: "1", memory: 1Gi }
@@ -163,8 +163,7 @@ spec:
 
   # Auth for AI providers
   authRefs:
-    - secret: alice-anthropic-key
-    - secret: alice-openai-key
+    - secret: alice-gcp-credentials
 
 status:
   phase: Running
@@ -219,13 +218,13 @@ spec:
 
   model:
     provider: anthropic
-    model: claude-opus-4-0-20250514
+    model: gemini-2.0-flash
     thinking: high
-    authSecretRef: alice-anthropic-key
+    authSecretRef: alice-gcp-creds
 
   sandbox:
     enabled: true
-    image: ghcr.io/openclaw/sandbox:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/sandbox:latest
     securityContext:
       readOnlyRootFilesystem: true
       runAsNonRoot: true
@@ -427,10 +426,10 @@ spec:
         ...
   # Container image requirements (bins this skill pack needs)
   runtimeRequirements:
-    image: ghcr.io/openclaw/sandbox-common:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/sandbox-common:latest
   # Optional sidecar container for runtime tools + auto-RBAC
   sidecar:
-    image: ghcr.io/alexsjones/sympozium/skill-k8s-ops:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/skill-k8s-ops:latest
     mountWorkspace: true
     resources:
       cpu: "100m"
@@ -517,7 +516,7 @@ spec:
 
   # Shared auth — patched by the TUI wizard during activation
   authRefs:
-    - secret: platform-team-openai-key
+    - secret: platform-team-gcp-credentials
 
   # Shared policy reference
   policyRef: default-policy
@@ -638,7 +637,7 @@ spec:
       containers:
         # Main agent container — runs the LLM inference loop
         - name: agent
-          image: ghcr.io/openclaw/agent-runner:latest
+          image: us-docker.pkg.dev/sympozium/sympozium/agent-runner:latest
           securityContext:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
@@ -671,7 +670,7 @@ spec:
 
         # Sidecar: IPC bridge to control plane
         - name: ipc-bridge
-          image: ghcr.io/openclaw/ipc-bridge:latest
+          image: us-docker.pkg.dev/sympozium/sympozium/ipc-bridge:latest
           env:
             - name: AGENT_RUN_ID
               value: run-abc123
@@ -686,7 +685,7 @@ spec:
 
         # Optional sidecar: sandbox exec (if exec tools are enabled)
         - name: sandbox
-          image: ghcr.io/openclaw/sandbox:latest
+          image: us-docker.pkg.dev/sympozium/sympozium/sandbox:latest
           securityContext:
             readOnlyRootFilesystem: true
             capabilities:
@@ -773,7 +772,7 @@ instead of polling.
 ### 4.4 Channel Pods
 
 Each channel type runs as its own Deployment (or StatefulSet for channels that
-need persistent local state, like WhatsApp's session auth).
+need persistent local state).
 
 ```yaml
 apiVersion: apps/v1
@@ -794,7 +793,7 @@ spec:
     spec:
       containers:
         - name: telegram
-          image: ghcr.io/openclaw/channel-telegram:latest
+          image: us-docker.pkg.dev/sympozium/sympozium/channel-google-chat:latest
           env:
             - name: INSTANCE_NAME
               value: alice
@@ -802,40 +801,39 @@ spec:
               value: nats://nats.sympozium:4222
           envFrom:
             - secretRef:
-                name: alice-telegram-creds
+                name: alice-google-chat-creds
 ```
 
 Channel pods:
-1. Maintain the connection to the external service (Telegram Bot API, WhatsApp Web, Discord Gateway, etc.)
+1. Maintain the connection to the external service (Google Chat API)
 2. Receive inbound messages and publish them to the event bus (`channel.message.received`)
 3. Subscribe to outbound message events (`channel.message.send`) and deliver them
-4. Report health status via the event bus (replacing OpenClaw's in-process channel health monitor)
+4. Report health status via the event bus
 
-This decomposition means channels scale and fail independently. A WhatsApp
-reconnection doesn't affect Telegram. A Telegram rate limit doesn't block Discord.
+This decomposition means channels scale and fail independently.
 
-#### Telegram Setup
+#### Google Chat Setup
 
-1. Open Telegram and message [@BotFather](https://t.me/BotFather).
-2. Send `/newbot`, choose a name and username — BotFather replies with an API token.
-3. Create a Kubernetes secret with the token:
+1. Create a service account in your GCP project.
+2. Grant the service account Google Chat API permissions.
+3. Generate a JSON key for the service account.
+4. Create a Kubernetes secret with the credentials:
    ```bash
-   kubectl create secret generic my-telegram-creds \
-     --from-literal=TELEGRAM_BOT_TOKEN=<token-from-botfather>
+   kubectl create secret generic my-google-chat-creds \
+     --from-file=GOOGLE_CHAT_SERVICE_ACCOUNT=service-account-key.json
    ```
-4. Reference the secret in your SympoziumInstance:
+5. Reference the secret in your SympoziumInstance:
    ```yaml
    channels:
-     - type: telegram
+     - type: google-chat
        configRef:
-         secret: my-telegram-creds
+         secret: my-google-chat-creds
    ```
-5. The controller creates a `channel-telegram` Deployment that long-polls the Telegram Bot API.
-   Messages sent to your bot are routed to AgentRuns automatically.
+6. The controller creates a `channel-google-chat` Deployment that connects to the Google Chat API.
+   Messages in connected chat spaces are routed to AgentRuns automatically.
 
-> **Tip:** To find your `chat_id`, send a message to the bot, then visit
-> `https://api.telegram.org/bot<TOKEN>/getUpdates` — the `chat.id` field
-> in the response is what agents use with `send_channel_message`.
+> **Tip:** Use the Google Chat API to find space IDs and configure message routing.
+> Agents use `send_channel_message` to post responses back to Google Chat spaces.
 
 ### 4.5 Event Bus
 

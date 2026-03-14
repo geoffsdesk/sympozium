@@ -14,7 +14,7 @@ PersonaPack "platform-team" (3 personas)
   ├── Activate via TUI (Enter on pack → wizard → API key → confirm)
   │
   └── Controller stamps out:
-      ├── Secret: platform-team-openai-key
+      ├── Secret: platform-team-gcp-creds
       ├── SympoziumInstance: platform-team-security-guardian
       │   ├── SympoziumSchedule: ...security-guardian-schedule (every 30m)
       │   └── ConfigMap: ...security-guardian-memory (seeded)
@@ -45,20 +45,20 @@ All generated resources have `ownerReferences` pointing back to the PersonaPack 
 1. Launch `sympozium` — the TUI opens on the **Personas** tab (view 1)
 2. Select a pack and press **Enter** to start the onboarding wizard
 3. Choose your AI provider and paste an API key
-4. Optionally bind channels (Telegram, Slack, Discord, WhatsApp)
+4. Optionally bind channels (Google Chat)
 5. Confirm — the controller creates all instances within seconds
 
 ## Activating via kubectl
 
 ```yaml
 # 1. Create the provider secret
-kubectl create secret generic my-pack-openai-key \
-  --from-literal=OPENAI_API_KEY=sk-...
+kubectl create secret generic my-pack-gcp-creds \
+  --from-file=key.json=gcp-service-account.json
 
 # 2. Patch the PersonaPack with authRefs to trigger activation
 kubectl patch personapack platform-team --type=merge -p '{
   "spec": {
-    "authRefs": [{"provider": "openai", "secret": "my-pack-openai-key"}]
+    "authRefs": [{"provider": "vertexai", "secret": "my-pack-gcp-creds"}]
   }
 }'
 ```

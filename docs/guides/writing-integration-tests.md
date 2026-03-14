@@ -6,7 +6,7 @@ Unlike unit tests, they exercise the full pipeline: controller → Job → agent
 ## Prerequisites
 
 - A Kind (or other) cluster with Sympozium installed (`make install && kubectl apply -k config/`)
-- An OpenAI API key (or other supported provider)
+- GCP Vertex AI credentials
 - `kubectl` configured to talk to the cluster
 
 ## Running Existing Tests
@@ -19,9 +19,9 @@ make test-integration
 make integration-tests
 
 # Optional capability validation (same target, token-gated checks)
-# CLAUDE_TOKEN validates Anthropic provider wiring
+# GCP_CREDENTIALS validates Vertex AI provider wiring
 # GITHUB_TOKEN validates github-gitops token endpoint + secret persistence
-CLAUDE_TOKEN=... GITHUB_TOKEN=... make integration-tests
+GCP_CREDENTIALS=... GITHUB_TOKEN=... make integration-tests
 
 # Run with a specific model
 TEST_MODEL=gpt-5.2 ./test/integration/test-write-file.sh
@@ -29,8 +29,8 @@ TEST_MODEL=gpt-5.2 ./test/integration/test-write-file.sh
 # Override timeout (seconds)
 TEST_TIMEOUT=180 ./test/integration/test-write-file.sh
 
-# Use a pre-existing secret instead of OPENAI_API_KEY env var
-kubectl create secret generic inttest-openai-key --from-literal=OPENAI_API_KEY=sk-...
+# Use a pre-existing secret instead of GCP credentials env var
+kubectl create secret generic inttest-gcp-creds --from-file=key.json=gcp-service-account.json
 ./test/integration/test-write-file.sh
 ```
 
@@ -67,8 +67,8 @@ set -euo pipefail
 NAMESPACE="${TEST_NAMESPACE:-default}"
 INSTANCE_NAME="inttest-my-tool"
 RUN_NAME="inttest-my-tool-run"
-SECRET_NAME="inttest-openai-key"
-MODEL="${TEST_MODEL:-gpt-4o-mini}"
+SECRET_NAME="inttest-gcp-creds"
+MODEL="${TEST_MODEL:-gemini-2.0-flash}"
 TIMEOUT="${TEST_TIMEOUT:-120}"
 
 RED='\033[0;31m'
@@ -96,7 +96,7 @@ if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
         exit 1
     fi
     kubectl create secret generic "$SECRET_NAME" \
-        --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" -n "$NAMESPACE"
+        --from-file=key.json="$GCP_CREDENTIALS" -n "$NAMESPACE"
 fi
 
 cleanup 2>/dev/null || true
@@ -133,8 +133,10 @@ spec:
   task: |
     YOUR DETERMINISTIC TASK PROMPT HERE.
   model:
-    provider: openai
+    provider: vertexai
     model: ${MODEL}
+    projectId: "YOUR_GCP_PROJECT"
+    location: "us-central1"
     authSecretRef: ${SECRET_NAME}
   timeout: "3m"
 EOF

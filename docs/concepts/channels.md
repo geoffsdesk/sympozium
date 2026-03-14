@@ -4,15 +4,12 @@ Channels connect Sympozium to external messaging platforms. Each channel runs as
 
 ## Supported Channels
 
-| Channel | Protocol | Self-chat | Status |
-|---------|----------|-----------|--------|
-| **WhatsApp** | WhatsApp Web (multidevice) via `whatsmeow` | Owner can message themselves to interact with agents | **Stable** |
-| **Telegram** | Bot API (`tgbotapi`) | Owner can message themselves to interact with agents | **Stable** |
-| **Discord** | Gateway WebSocket (`discordgo`) | — | **Alpha** |
-| **Slack** | Socket Mode (`slack-go`) | — | **Alpha** |
+| Channel | Protocol | Authentication | Status |
+|---------|----------|-----------------|--------|
+| **Google Chat** | Google Chat API | Service account or OAuth | **Stable** |
 
 !!! info
-    **Stable** — tested and actively used. **Alpha** — implemented but not yet production-tested.
+    Sympozium supports Google Chat for integration with GCP-native environments.
 
 Channels are optional. You can always interact through the TUI, web dashboard, or by creating AgentRun CRs directly with kubectl.
 
@@ -22,25 +19,16 @@ Connect channels during onboarding or via the TUI edit modal:
 
 | Channel | How to connect |
 |---------|----------------|
-| **Telegram** | Create a bot with [@BotFather](https://t.me/BotFather), get the token, pass it during onboarding or set it in the SympoziumInstance channel config |
-| **Slack** | Create a Slack app with Socket Mode enabled, add the bot/app token during onboarding |
-| **Discord** | Create a Discord bot, grab the token, and connect it during onboarding |
-| **WhatsApp** | Use the WhatsApp Business API — Sympozium displays a QR code in the TUI for pairing |
+| **Google Chat** | Create a service account in GCP, grant it Google Chat API permissions, and provide the service account JSON key during onboarding or set it in the SympoziumInstance channel config |
 
-## Slack Setup (Socket Mode)
+## Google Chat Setup
 
-For reliable Slack connectivity, configure your Slack app with both tokens and required app settings:
+For Google Chat integration with GCP:
 
-- Provide both secrets in the channel secret:
-    - `SLACK_BOT_TOKEN` (`xoxb-...`)
-    - `SLACK_APP_TOKEN` (`xapp-...`)
-- Enable **App Home → Messages Tab** and allow users to message the app
-- Enable **Socket Mode**
-- Add bot event subscriptions:
-    - `message.im`
-    - `message.channels`
-    - `app_mention`
-- Reinstall the app after changing scopes or event subscriptions
+1. Create a service account in your GCP project
+2. Grant the service account these roles:
+   - `roles/chat.owner` (or custom role with necessary Chat API permissions)
+3. Create a JSON key for the service account
+4. Provide the JSON key during onboarding or in the channel configuration
 
-!!! warning
-    If `SLACK_APP_TOKEN` is omitted, Sympozium falls back to Slack Events API mode, which requires a publicly reachable webhook URL.
+The service account credentials are stored securely as a Kubernetes Secret and used to authenticate API calls to Google Chat.

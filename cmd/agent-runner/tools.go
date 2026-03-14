@@ -92,7 +92,7 @@ func defaultTools() []ToolDef {
 		},
 		{
 			Name: ToolSendChannelMessage,
-			Description: "Send a message to the user via a connected channel (e.g. WhatsApp, Telegram, Discord, Slack). " +
+			Description: "Send a message to the user via a connected channel (e.g. Google Chat or Discord). " +
 				"Use this when the user asks you to notify them, send a summary, or deliver any text outside of the task result. " +
 				"If no chatId is provided the message is sent to the device owner (self-chat).",
 			Parameters: map[string]any{
@@ -100,8 +100,8 @@ func defaultTools() []ToolDef {
 				"properties": map[string]any{
 					"channel": map[string]any{
 						"type":        "string",
-						"description": "Channel type to send through: whatsapp, telegram, discord, or slack.",
-						"enum":        []string{"whatsapp", "telegram", "discord", "slack"},
+						"description": "Channel type to send through: googlechat or discord.",
+						"enum":        []string{"googlechat", "discord"},
 					},
 					"text": map[string]any{
 						"type":        "string",
@@ -290,7 +290,7 @@ func sendChannelMessageTool(args map[string]any) string {
 	chatID, _ := args["chatId"].(string)
 
 	if channel == "" {
-		return "Error: 'channel' is required (whatsapp, telegram, discord, slack)"
+		return "Error: 'channel' is required (googlechat, discord)"
 	}
 	if text == "" {
 		return "Error: 'text' is required"

@@ -57,11 +57,11 @@ Sympozium takes the agentic control model and rebuilds it on Kubernetes primitiv
 - **Skill sidecars** — every skill runs in its own container with auto-provisioned, least-privilege RBAC
 - **PersonaPacks** — pre-configured bundles of agents that activate with a few keypresses
 - **Multiple interfaces** — k9s-style TUI, full web dashboard, or CLI
-- **Channel integrations** — Telegram, Slack, Discord, WhatsApp
+- **Channel integrations** — Google Chat
 - **Persistent memory** — agents retain context across runs via ConfigMap-backed memory
 - **Policy-as-CRD** — feature and tool gating enforced at admission time
 - **OpenTelemetry** — built-in observability with traces and metrics
-- **Web endpoints** — expose agents as OpenAI-compatible APIs and MCP servers
+- **Web endpoints** — expose agents as Vertex AI-compatible APIs and MCP servers
 - **Scheduled tasks** — cron-based recurring agent runs
 
 ---

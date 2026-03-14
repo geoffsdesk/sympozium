@@ -359,7 +359,7 @@ spec:
         # Resource Management
         ...
   sidecar:
-    image: ghcr.io/alexsjones/sympozium/skill-k8s-ops:latest
+    image: us-docker.pkg.dev/sympozium/sympozium/skill-k8s-ops:latest
     command: ["sleep", "infinity"]
     mountWorkspace: true
     resources:

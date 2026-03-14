@@ -1,18 +1,18 @@
 ---
-# Example: Ad-hoc SympoziumInstance with github-gitops skill.
+# Example: Ad-hoc SympoziumInstance with gcp-gitops skill.
 #
 # This creates a single agent instance (not a PersonaPack) that has
-# the github-gitops skill configured with a target repository.
+# the gcp-gitops skill configured with a target repository.
 # Useful for quick one-off agents or testing.
 #
 # Prerequisites:
 #   1. Install Sympozium:  sympozium install
 #   2. Create the API key secret:
-#      kubectl create secret generic my-agent-openai-key \
-#        --from-literal=OPENAI_API_KEY=sk-...
+#      kubectl create secret generic my-agent-gcp-key \
+#        --from-literal=GOOGLE_API_KEY=sk-...
 #   3. Create the GitHub token secret:
-#      kubectl create secret generic github-gitops-token \
-#        --from-literal=github-token=ghp_... \
+#      kubectl create secret generic gcp-gitops-token \
+#        --from-literal=gcloud-token=ghp_... \
 #        -n sympozium-system
 #   4. Apply:  kubectl apply -f personapack-adhoc-with-github.yaml
 #
@@ -24,14 +24,13 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o
+      model: gemini-2.0-flash
   authRefs:
-    - provider: openai
-      secret: my-agent-openai-key
+    - provider: vertexai
+      secret: my-agent-gcp-key
   skills:
     - skillPackRef: k8s-ops
-    - skillPackRef: llmfit
-    - skillPackRef: github-gitops
+    - skillPackRef: gcp-gitops
       params:
         repo: "myorg/myapp"            # owner/repo format
   memory:

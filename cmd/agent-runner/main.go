@@ -1,22 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/azure"
-	openaioption "github.com/openai/openai-go/v3/option"
-	"github.com/openai/openai-go/v3/shared"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -63,8 +59,8 @@ func main() {
 	}
 
 	systemPrompt := getEnv("SYSTEM_PROMPT", "You are a helpful AI assistant.")
-	provider := strings.ToLower(getEnv("MODEL_PROVIDER", "openai"))
-	modelName := getEnv("MODEL_NAME", "gpt-4o-mini")
+	provider := strings.ToLower(getEnv("MODEL_PROVIDER", "vertexai"))
+	modelName := getEnv("MODEL_NAME", "gemini-2.0-flash")
 	baseURL := strings.TrimRight(getEnv("MODEL_BASE_URL", ""), "/")
 	memoryEnabled := getEnv("MEMORY_ENABLED", "") == "true"
 	toolsEnabled := getEnv("TOOLS_ENABLED", "") == "true"
@@ -123,9 +119,8 @@ func main() {
 
 	apiKey := firstNonEmpty(
 		os.Getenv("API_KEY"),
-		os.Getenv("OPENAI_API_KEY"),
-		os.Getenv("ANTHROPIC_API_KEY"),
-		os.Getenv("AZURE_OPENAI_API_KEY"),
+		os.Getenv("GOOGLE_API_KEY"),
+		os.Getenv("VERTEX_AI_API_KEY"),
 	)
 
 	log.Printf("provider=%s model=%s baseURL=%s tools=%v task=%q",
@@ -170,11 +165,10 @@ func main() {
 	)
 
 	switch provider {
-	case "anthropic":
-		responseText, inputTokens, outputTokens, toolCalls, err = callAnthropic(ctx, apiKey, baseURL, modelName, systemPrompt, task, tools)
+	case "vertexai", "gemini":
+		responseText, inputTokens, outputTokens, toolCalls, err = callGemini(ctx, apiKey, baseURL, modelName, systemPrompt, task, tools)
 	default:
-		// OpenAI, Azure OpenAI, Ollama, and any OpenAI-compatible provider
-		responseText, inputTokens, outputTokens, toolCalls, err = callOpenAI(ctx, provider, apiKey, baseURL, modelName, systemPrompt, task, tools)
+		responseText, inputTokens, outputTokens, toolCalls, err = callGemini(ctx, apiKey, baseURL, modelName, systemPrompt, task, tools)
 	}
 
 	elapsed := time.Since(start)
@@ -256,39 +250,45 @@ func main() {
 	log.Println("agent-runner finished successfully")
 }
 
-// callAnthropic uses the official Anthropic Go SDK with optional tool calling.
-// When tools is non-empty, the function enters a loop: call the LLM, execute
-// any tool_use blocks, feed results back, and repeat until the model produces
-// a final text response or the iteration limit is reached.
-func callAnthropic(ctx context.Context, apiKey, baseURL, model, systemPrompt, task string, tools []ToolDef) (string, int, int, int, error) {
-	opts := []anthropicoption.RequestOption{
-		anthropicoption.WithMaxRetries(5),
-	}
-	if apiKey != "" {
-		opts = append(opts, anthropicoption.WithAPIKey(apiKey))
-	}
-	if baseURL != "" {
-		opts = append(opts, anthropicoption.WithBaseURL(baseURL))
-	}
-
-	client := anthropic.NewClient(opts...)
-
-	// Build Anthropic tool definitions.
-	var anthropicTools []anthropic.ToolUnionParam
-	for _, t := range tools {
-		schema := anthropic.ToolInputSchemaParam{
-			Properties: t.Parameters["properties"],
+// callGemini uses the Vertex AI Gemini REST API with optional tool calling.
+func callGemini(ctx context.Context, apiKey, baseURL, model, systemPrompt, task string, tools []ToolDef) (string, int, int, int, error) {
+	// Determine endpoint
+	endpoint := baseURL
+	if endpoint == "" {
+		projectID := getEnv("GCP_PROJECT_ID", "")
+		location := getEnv("GCP_LOCATION", "us-central1")
+		if projectID != "" {
+			endpoint = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s", location, projectID, location, model)
+		} else {
+			// Fallback to Gemini API (generativelanguage.googleapis.com)
+			endpoint = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s", model)
 		}
-		if req, ok := t.Parameters["required"].([]string); ok {
-			schema.Required = req
-		}
-		tool := anthropic.ToolUnionParamOfTool(schema, t.Name)
-		tool.OfTool.Description = anthropic.String(t.Description)
-		anthropicTools = append(anthropicTools, tool)
 	}
 
-	messages := []anthropic.MessageParam{
-		anthropic.NewUserMessage(anthropic.NewTextBlock(task)),
+	client := &http.Client{Timeout: 5 * time.Minute}
+
+	// Build Gemini tool declarations
+	var geminiTools []map[string]any
+	if len(tools) > 0 {
+		var funcDecls []map[string]any
+		for _, t := range tools {
+			funcDecls = append(funcDecls, map[string]any{
+				"name":        t.Name,
+				"description": t.Description,
+				"parameters":  t.Parameters,
+			})
+		}
+		geminiTools = []map[string]any{
+			{"functionDeclarations": funcDecls},
+		}
+	}
+
+	// Build initial contents
+	contents := []map[string]any{
+		{
+			"role":  "user",
+			"parts": []map[string]any{{"text": task}},
+		},
 	}
 
 	totalInputTokens := 0
@@ -296,206 +296,192 @@ func callAnthropic(ctx context.Context, apiKey, baseURL, model, systemPrompt, ta
 	totalToolCalls := 0
 
 	for i := 0; i < maxToolIterations; i++ {
-		params := anthropic.MessageNewParams{
-			Model:     anthropic.Model(model),
-			MaxTokens: int64(8192),
-			System: []anthropic.TextBlockParam{
-				{Text: systemPrompt},
+		// Build request body
+		reqBody := map[string]any{
+			"contents": contents,
+			"systemInstruction": map[string]any{
+				"parts": []map[string]any{{"text": systemPrompt}},
 			},
-			Messages: messages,
+			"generationConfig": map[string]any{
+				"maxOutputTokens": 8192,
+			},
 		}
-		if len(anthropicTools) > 0 {
-			params.Tools = anthropicTools
+		if len(geminiTools) > 0 {
+			reqBody["tools"] = geminiTools
+		}
+
+		bodyBytes, err := json.Marshal(reqBody)
+		if err != nil {
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("marshalling request: %w", err)
+		}
+
+		// Build URL
+		requestURL := endpoint + ":generateContent"
+		if apiKey != "" {
+			if strings.Contains(requestURL, "?") {
+				requestURL += "&key=" + apiKey
+			} else {
+				requestURL += "?key=" + apiKey
+			}
 		}
 
 		chatCtx, chatSpan := obs.startChatSpan(ctx,
-			attribute.String("gen_ai.system", "anthropic"),
+			attribute.String("gen_ai.system", "vertexai"),
 			attribute.String("gen_ai.request.model", model),
 		)
-		message, err := client.Messages.New(chatCtx, params)
+
+		req, err := http.NewRequestWithContext(chatCtx, http.MethodPost, requestURL, bytes.NewReader(bodyBytes))
 		if err != nil {
 			markSpanError(chatSpan, err)
 			chatSpan.End()
-			var apiErr *anthropic.Error
-			if errors.As(err, &apiErr) {
-				return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-					fmt.Errorf("Anthropic API error (HTTP %d): %s", apiErr.StatusCode, truncate(apiErr.Error(), 500))
-			}
 			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-				fmt.Errorf("Anthropic API error: %w", err)
+				fmt.Errorf("creating request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		// Use access token for Vertex AI (service account)
+		accessToken := getEnv("GOOGLE_ACCESS_TOKEN", "")
+		if accessToken != "" {
+			req.Header.Set("Authorization", "Bearer "+accessToken)
 		}
 
-		totalInputTokens += int(message.Usage.InputTokens)
-		totalOutputTokens += int(message.Usage.OutputTokens)
+		resp, err := client.Do(req)
+		if err != nil {
+			markSpanError(chatSpan, err)
+			chatSpan.End()
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("Vertex AI API error: %w", err)
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			markSpanError(chatSpan, err)
+			chatSpan.End()
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("reading response: %w", err)
+		}
+
+		if resp.StatusCode != 200 {
+			markSpanError(chatSpan, fmt.Errorf("HTTP %d", resp.StatusCode))
+			chatSpan.End()
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("Vertex AI API error (HTTP %d): %s", resp.StatusCode, truncate(string(respBody), 500))
+		}
+
+		// Parse response
+		var geminiResp struct {
+			Candidates []struct {
+				Content struct {
+					Parts []struct {
+						Text         string          `json:"text,omitempty"`
+						FunctionCall *struct {
+							Name string          `json:"name"`
+							Args json.RawMessage `json:"args"`
+						} `json:"functionCall,omitempty"`
+					} `json:"parts"`
+					Role string `json:"role"`
+				} `json:"content"`
+				FinishReason string `json:"finishReason"`
+			} `json:"candidates"`
+			UsageMetadata struct {
+				PromptTokenCount     int `json:"promptTokenCount"`
+				CandidatesTokenCount int `json:"candidatesTokenCount"`
+			} `json:"usageMetadata"`
+		}
+
+		if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+			markSpanError(chatSpan, err)
+			chatSpan.End()
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("parsing Vertex AI response: %w", err)
+		}
+
+		totalInputTokens += geminiResp.UsageMetadata.PromptTokenCount
+		totalOutputTokens += geminiResp.UsageMetadata.CandidatesTokenCount
 		chatSpan.SetAttributes(
-			attribute.Int("gen_ai.usage.input_tokens", int(message.Usage.InputTokens)),
-			attribute.Int("gen_ai.usage.output_tokens", int(message.Usage.OutputTokens)),
-			attribute.String("gen_ai.response.finish_reasons", string(message.StopReason)),
+			attribute.Int("gen_ai.usage.input_tokens", geminiResp.UsageMetadata.PromptTokenCount),
+			attribute.Int("gen_ai.usage.output_tokens", geminiResp.UsageMetadata.CandidatesTokenCount),
 		)
+
+		if len(geminiResp.Candidates) == 0 {
+			markSpanError(chatSpan, fmt.Errorf("no candidates in response"))
+			chatSpan.End()
+			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
+				fmt.Errorf("no candidates in Vertex AI response")
+		}
+
+		candidate := geminiResp.Candidates[0]
+		chatSpan.SetAttributes(attribute.String("gen_ai.response.finish_reasons", candidate.FinishReason))
 		chatSpan.SetStatus(codes.Ok, "")
 		chatSpan.End()
 
-		// Separate text blocks and tool-use blocks.
+		// Separate text and function calls
 		var textContent strings.Builder
-		var toolUseBlocks []anthropic.ToolUseBlock
-		for _, block := range message.Content {
-			switch v := block.AsAny().(type) {
-			case anthropic.TextBlock:
-				textContent.WriteString(v.Text)
-			case anthropic.ToolUseBlock:
-				toolUseBlocks = append(toolUseBlocks, v)
+		var functionCalls []struct {
+			Name string
+			Args json.RawMessage
+		}
+
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				textContent.WriteString(part.Text)
+			}
+			if part.FunctionCall != nil {
+				functionCalls = append(functionCalls, struct {
+					Name string
+					Args json.RawMessage
+				}{Name: part.FunctionCall.Name, Args: part.FunctionCall.Args})
 			}
 		}
 
-		// If no tool calls, return the text.
-		if message.StopReason != anthropic.StopReasonToolUse || len(toolUseBlocks) == 0 {
+		// If no function calls, return the text
+		if len(functionCalls) == 0 {
 			return textContent.String(), totalInputTokens, totalOutputTokens, totalToolCalls, nil
 		}
 
-		// Build the assistant message with all content blocks (text + tool_use).
-		var assistantBlocks []anthropic.ContentBlockParamUnion
-		for _, block := range message.Content {
-			switch v := block.AsAny().(type) {
-			case anthropic.TextBlock:
-				assistantBlocks = append(assistantBlocks, anthropic.NewTextBlock(v.Text))
-			case anthropic.ToolUseBlock:
-				assistantBlocks = append(assistantBlocks,
-					anthropic.NewToolUseBlock(v.ID, json.RawMessage(v.Input), v.Name))
+		// Add the model's response to contents
+		var modelParts []map[string]any
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				modelParts = append(modelParts, map[string]any{"text": part.Text})
+			}
+			if part.FunctionCall != nil {
+				modelParts = append(modelParts, map[string]any{
+					"functionCall": map[string]any{
+						"name": part.FunctionCall.Name,
+						"args": json.RawMessage(part.FunctionCall.Args),
+					},
+				})
 			}
 		}
-		messages = append(messages, anthropic.NewAssistantMessage(assistantBlocks...))
+		contents = append(contents, map[string]any{
+			"role":  "model",
+			"parts": modelParts,
+		})
 
-		// Execute each tool call and build tool_result blocks.
-		var resultBlocks []anthropic.ContentBlockParamUnion
-		for _, tu := range toolUseBlocks {
+		// Execute tool calls and build function responses
+		var responseParts []map[string]any
+		for _, fc := range functionCalls {
 			totalToolCalls++
-			log.Printf("tool_use [%d]: %s id=%s", totalToolCalls, tu.Name, tu.ID)
+			log.Printf("function_call [%d]: %s", totalToolCalls, fc.Name)
 
-			result := executeToolCallWithTelemetry(ctx, tu.Name, string(tu.Input), tu.ID)
-			isErr := strings.HasPrefix(result, "Error:")
-			resultBlocks = append(resultBlocks, anthropic.NewToolResultBlock(tu.ID, result, isErr))
+			result := executeToolCallWithTelemetry(ctx, fc.Name, string(fc.Args), fmt.Sprintf("fc-%d", totalToolCalls))
+
+			responseParts = append(responseParts, map[string]any{
+				"functionResponse": map[string]any{
+					"name": fc.Name,
+					"response": map[string]any{
+						"content": result,
+					},
+				},
+			})
 		}
-		messages = append(messages, anthropic.NewUserMessage(resultBlocks...))
-	}
-
-	return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-		fmt.Errorf("exceeded maximum tool-call iterations (%d)", maxToolIterations)
-}
-
-// callOpenAI uses the official OpenAI Go SDK with optional tool calling.
-// When tools is non-empty, the function enters a loop: call the LLM, execute
-// any tool_calls, feed results back, and repeat until the model produces a
-// final text response or the iteration limit is reached.
-func callOpenAI(ctx context.Context, provider, apiKey, baseURL, model, systemPrompt, task string, tools []ToolDef) (string, int, int, int, error) {
-	opts := []openaioption.RequestOption{
-		openaioption.WithMaxRetries(5),
-	}
-
-	switch provider {
-	case "azure-openai":
-		if baseURL == "" {
-			return "", 0, 0, 0, fmt.Errorf("Azure OpenAI requires MODEL_BASE_URL to be set")
-		}
-		apiVersion := getEnv("AZURE_OPENAI_API_VERSION", "2024-06-01")
-		opts = append(opts,
-			azure.WithEndpoint(baseURL, apiVersion),
-			azure.WithAPIKey(apiKey),
-		)
-	default:
-		if apiKey != "" {
-			opts = append(opts, openaioption.WithAPIKey(apiKey))
-		}
-		if baseURL != "" {
-			opts = append(opts, openaioption.WithBaseURL(baseURL))
-		} else if provider == "ollama" {
-			opts = append(opts, openaioption.WithBaseURL("http://ollama.default.svc:11434/v1"))
-		}
-	}
-
-	client := openai.NewClient(opts...)
-
-	// Build OpenAI tool definitions.
-	var oaiTools []openai.ChatCompletionToolUnionParam
-	for _, t := range tools {
-		oaiTools = append(oaiTools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
-			Name:        t.Name,
-			Description: openai.String(t.Description),
-			Parameters:  shared.FunctionParameters(t.Parameters),
-		}))
-	}
-
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage(systemPrompt),
-		openai.UserMessage(task),
-	}
-
-	totalInputTokens := 0
-	totalOutputTokens := 0
-	totalToolCalls := 0
-
-	for i := 0; i < maxToolIterations; i++ {
-		params := openai.ChatCompletionNewParams{
-			Model:    openai.ChatModel(model),
-			Messages: messages,
-		}
-		if len(oaiTools) > 0 {
-			params.Tools = oaiTools
-		}
-
-		chatCtx, chatSpan := obs.startChatSpan(ctx,
-			attribute.String("gen_ai.system", provider),
-			attribute.String("gen_ai.request.model", model),
-		)
-		completion, err := client.Chat.Completions.New(chatCtx, params)
-		if err != nil {
-			markSpanError(chatSpan, err)
-			chatSpan.End()
-			var apiErr *openai.Error
-			if errors.As(err, &apiErr) {
-				return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-					fmt.Errorf("OpenAI API error (HTTP %d): %s", apiErr.StatusCode, truncate(apiErr.Error(), 500))
-			}
-			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-				fmt.Errorf("OpenAI API error: %w", err)
-		}
-
-		totalInputTokens += int(completion.Usage.PromptTokens)
-		totalOutputTokens += int(completion.Usage.CompletionTokens)
-		chatSpan.SetAttributes(
-			attribute.Int("gen_ai.usage.input_tokens", int(completion.Usage.PromptTokens)),
-			attribute.Int("gen_ai.usage.output_tokens", int(completion.Usage.CompletionTokens)),
-		)
-
-		if len(completion.Choices) == 0 {
-			markSpanError(chatSpan, fmt.Errorf("no choices in completion response"))
-			chatSpan.End()
-			return "", totalInputTokens, totalOutputTokens, totalToolCalls,
-				fmt.Errorf("no choices in completion response")
-		}
-		choice := completion.Choices[0]
-		chatSpan.SetAttributes(attribute.String("gen_ai.response.finish_reasons", choice.FinishReason))
-		chatSpan.SetStatus(codes.Ok, "")
-		chatSpan.End()
-
-		// If model made tool calls, execute them and loop.
-		if choice.FinishReason == "tool_calls" && len(choice.Message.ToolCalls) > 0 {
-			// Add the assistant message (with tool calls) to history.
-			messages = append(messages, choice.Message.ToParam())
-
-			// Execute each tool call and add results.
-			for _, tc := range choice.Message.ToolCalls {
-				fc := tc.AsFunction()
-				totalToolCalls++
-				log.Printf("tool_call [%d]: %s id=%s", totalToolCalls, fc.Function.Name, fc.ID)
-
-				result := executeToolCallWithTelemetry(ctx, fc.Function.Name, fc.Function.Arguments, fc.ID)
-				messages = append(messages, openai.ToolMessage(result, fc.ID))
-			}
-			continue
-		}
-
-		// No tool calls — return the text response.
-		return choice.Message.Content, totalInputTokens, totalOutputTokens, totalToolCalls, nil
+		contents = append(contents, map[string]any{
+			"role":  "user",
+			"parts": responseParts,
+		})
 	}
 
 	return "", totalInputTokens, totalOutputTokens, totalToolCalls,

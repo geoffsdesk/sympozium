@@ -1,6 +1,6 @@
 # -- Global image settings
 image:
-  registry: ghcr.io/alexsjones/sympozium
+  registry: us-docker.pkg.dev/sympozium/sympozium
   pullPolicy: IfNotPresent
   # -- Override the image tag (defaults to .Chart.AppVersion)
   tag: ""
@@ -76,29 +76,12 @@ webhook:
   tolerations: []
   affinity: {}
 
-# -- NATS JetStream (event bus for agent IPC)
-nats:
-  # -- Deploy built-in NATS. Set to false if using an external NATS cluster.
-  enabled: true
-  image:
-    repository: nats
-    tag: 2-alpine
-  resources:
-    limits:
-      cpu: 500m
-      memory: 256Mi
-    requests:
-      cpu: 50m
-      memory: 64Mi
-  # -- External NATS URL (used when nats.enabled=false)
-  externalUrl: ""
-  persistence:
-    enabled: false
-    size: 1Gi
-    storageClass: ""
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+# -- Google Cloud Pub/Sub (event bus for agent IPC)
+pubsub:
+  # -- GCP project ID for Pub/Sub
+  projectId: ""
+  # -- Topic prefix (default: sympozium-)
+  topicPrefix: "sympozium-"
 
 # -- cert-manager integration for webhook TLS
 certManager:
@@ -138,7 +121,7 @@ defaultPolicies:
   # -- Install built-in policy presets
   enabled: true
 
-# -- Default SkillPacks to install (code-review, incident-response, k8s-ops, sre-observability, llmfit, github-gitops, software-dev)
+# -- Default SkillPacks to install (code-review, incident-response, k8s-ops, sre-observability, gcp-gitops, software-dev)
 defaultSkills:
   enabled: true
   # -- List of SkillPack specs
@@ -190,7 +173,7 @@ observability:
   # -- Built-in OpenTelemetry collector
   collector:
     image:
-      repository: otel/opentelemetry-collector
+      repository: otel/opentelemetry-collector-contrib
       tag: "0.104.0"
     resources:
       limits:
@@ -243,3 +226,14 @@ serviceMonitor:
   enabled: false
   interval: 30s
   labels: {}
+
+# -- GCP-specific configuration
+gcp:
+  # -- GCP Project ID (used for Vertex AI, Pub/Sub, Cloud SQL, Artifact Registry)
+  projectId: ""
+  # -- GCP region/location
+  location: "us-central1"
+  # -- Cloud SQL instance connection name (e.g. project:region:instance)
+  cloudSqlInstance: ""
+  # -- Artifact Registry repository path
+  artifactRegistry: "us-docker.pkg.dev/sympozium/sympozium"

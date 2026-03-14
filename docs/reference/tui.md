@@ -11,7 +11,7 @@ Running `sympozium` with no arguments launches a **k9s-style interactive termina
 | `3` | Runs | AgentRun list with phase, duration, result preview |
 | `4` | Policies | SympoziumPolicy list with feature gates |
 | `5` | Skills | SkillPack list with file counts |
-| `6` | Channels | Channel pod status (Telegram, Slack, Discord, WhatsApp) |
+| `6` | Channels | Channel pod status (Google Chat) |
 | `7` | Schedules | SympoziumSchedule list with cron, type, phase, run count |
 | `8` | Pods | All sympozium pods with status and restarts |
 

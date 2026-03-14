@@ -19,7 +19,7 @@ The core resource representing an agent identity. Each instance has:
 
 - An LLM provider configuration (model, API key reference, base URL)
 - Skill bindings (which SkillPacks are active)
-- Channel connections (Telegram, Slack, etc.)
+- Channel connections (Google Chat)
 - Memory settings (enabled/disabled, max size)
 - A policy reference
 
@@ -31,7 +31,7 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o
+      model: gemini-2.0-flash
   skills:
     - skillPackRef: k8s-ops
     - skillPackRef: code-review
@@ -53,8 +53,8 @@ spec:
   instanceRef: my-agent
   task: "How many nodes are in the cluster?"
   model:
-    name: gpt-4o
-    provider: openai
+    name: gemini-2.0-flash
+    provider: vertexai
   skills:
     - k8s-ops
   timeout: "5m"

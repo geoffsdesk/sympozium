@@ -32,7 +32,7 @@ spec:
         When you review code, you focus on correctness, architecture, and
         maintainability over style.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -72,7 +72,7 @@ spec:
         create a GitHub issue with the appropriate role label rather than
         fixing it yourself. Stay focused on your assigned tasks.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -111,7 +111,7 @@ spec:
         When you encounter backend API changes needed for your work, create
         a GitHub issue labelled `backend` describing the required API contract.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -156,7 +156,7 @@ spec:
 
         Label bug reports with `bug` and the appropriate role label.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -202,7 +202,7 @@ spec:
 
         You do NOT write code or open PRs. You only review and comment.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -243,7 +243,7 @@ spec:
         or create an issue if the fix requires team discussion. Always label
         infrastructure PRs with `devops` and `infra`.
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:
@@ -287,7 +287,7 @@ spec:
         - Document breaking changes prominently
         - Write for the reader, not for yourself
       skills:
-        - github-gitops
+        - gcp-gitops
         - code-review
         - software-dev
       toolPolicy:

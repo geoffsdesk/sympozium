@@ -13,30 +13,35 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 ## Install
 
 ```bash
-helm install sympozium ./charts/sympozium
+helm install sympozium oci://us-docker.pkg.dev/sympozium/sympozium/charts/sympozium
 ```
 
-See [`charts/sympozium/values.yaml`](https://github.com/AlexsJones/sympozium/blob/main/charts/sympozium/values.yaml) for all configuration options (replicas, resources, external NATS, network policies, etc.).
+See the values.yaml for all configuration options (replicas, resources, external NATS, network policies, GCP-specific settings, etc.).
 
 ## Observability
 
-The Helm chart deploys a built-in OpenTelemetry collector by default:
+The Helm chart can export observability data to GCP Cloud Trace and Cloud Monitoring:
 
 ```yaml
 observability:
   enabled: true
-  collector:
-    service:
-      otlpGrpcPort: 4317
-      otlpHttpPort: 4318
-      metricsPort: 8889
+  cloudTrace:
+    enabled: true
+    projectId: "YOUR_PROJECT_ID"
+  cloudMonitoring:
+    enabled: true
+    projectId: "YOUR_PROJECT_ID"
 ```
 
-Disable it if you already run a shared collector:
+Disable cloud exporters if you use a local OpenTelemetry collector:
 
 ```yaml
 observability:
-  enabled: false
+  enabled: true
+  cloudTrace:
+    enabled: false
+  cloudMonitoring:
+    enabled: false
 ```
 
 ## Web UI

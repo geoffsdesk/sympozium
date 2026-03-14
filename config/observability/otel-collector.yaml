@@ -24,6 +24,13 @@ data:
         verbosity: normal
       prometheus:
         endpoint: 0.0.0.0:8889
+      googlecloud:
+        project: "${GOOGLE_CLOUD_PROJECT}"
+        metric:
+          prefix: "custom.googleapis.com/sympozium/"
+          skip_create_descriptor: false
+        log:
+          default_log_name: "sympozium"
 
     extensions:
       health_check:
@@ -35,15 +42,15 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [debug]
+          exporters: [debug, googlecloud]
         metrics:
           receivers: [otlp]
           processors: [batch]
-          exporters: [prometheus, debug]
+          exporters: [prometheus, debug, googlecloud]
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [debug]
+          exporters: [debug, googlecloud]
 ---
 apiVersion: apps/v1
 kind: Deployment

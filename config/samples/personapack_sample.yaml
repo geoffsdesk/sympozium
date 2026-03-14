@@ -10,7 +10,7 @@ spec:
   category: custom
   version: "1.0.0"
   authRefs:
-    - secret: my-team-openai-key
+    - secret: my-team-gcp-key
   policyRef: default-policy
   personas:
     - name: reviewer
@@ -38,4 +38,4 @@ spec:
         seeds:
           - "Follow team coding standards"
       channels:
-        - slack
+        - googlechat

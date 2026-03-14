@@ -20,9 +20,9 @@ defaultPersonas:
 #   kubectl patch personapack developer-team --type=merge -p '{
 #     "spec": {
 #       "enabled": true,
-#       "authRefs": [{"provider": "openai", "secret": "dev-team-openai-key"}],
+#       "authRefs": [{"provider": "vertexai", "secret": "dev-team-gcp-key"}],
 #       "skillParams": {
-#         "github-gitops": {"repo": "myorg/myapp"}
+#         "gcp-gitops": {"repo": "myorg/myapp"}
 #       },
 #       "taskOverride": "Build the v2 REST API. Focus on backward compatibility."
 #     }
@@ -39,11 +39,11 @@ defaultPersonas:
 #     -H "Content-Type: application/json" \
 #     -d '{
 #       "enabled": true,
-#       "provider": "anthropic",
-#       "secretName": "dev-team-anthropic-key",
-#       "model": "claude-sonnet-4-20250514",
+#       "provider": "vertexai",
+#       "secretName": "dev-team-gcp-key",
+#       "model": "gemini-2.0-flash",
 #       "skillParams": {
-#         "github-gitops": {"repo": "myorg/myapp"}
+#         "gcp-gitops": {"repo": "myorg/myapp"}
 #       },
 #       "taskOverride": "Migrate the codebase from Express to Fastify."
 #     }'
@@ -64,18 +64,18 @@ defaultPersonas:
 #   description: "My custom team"
 #   category: custom
 #   authRefs:
-#     - provider: openai
-#       secret: my-team-openai-key
+#     - provider: vertexai
+#       secret: my-team-gcp-key
 #   skillParams:
-#     github-gitops:
+#     gcp-gitops:
 #       repo: "myorg/myapp"
 #   taskOverride: "Ship the MVP by end of sprint."
 #   personas:
 #     - name: dev
 #       displayName: "Developer"
 #       systemPrompt: "You are a full-stack developer."
-#       model: gpt-4o
-#       skills: [github-gitops, code-review, software-dev]
+#       model: gemini-2.0-flash
+#       skills: [gcp-gitops, code-review, software-dev]
 #       schedule:
 #         type: sweep
 #         interval: "1h"

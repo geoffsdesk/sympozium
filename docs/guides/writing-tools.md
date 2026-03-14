@@ -310,7 +310,7 @@ Agent writes: /ipc/messages/send-<id>.json
 Bridge reads: (via fsnotify) → publishes to NATS topic
 ```
 
-The IPC bridge (`internal/ipc/bridge.go`) watches `/ipc/messages/` and publishes each file as an event to `channel.message.send` on NATS. Channel pods (WhatsApp, Telegram, etc.) subscribe to this topic and deliver the message.
+The IPC bridge (`internal/ipc/bridge.go`) watches `/ipc/messages/` and publishes each file as an event to `channel.message.send` on NATS. Channel pods (Google Chat) subscribe to this topic and deliver the message.
 
 **When to use:** Sending messages through channels, publishing events, any communication that needs to leave the pod via NATS.
 
@@ -422,8 +422,8 @@ spec:
   task: "Use the my_new_tool tool with requiredParam='hello' and tell me the result."
   model:
     provider: openai
-    model: gpt-4o-mini
-    authSecretRef: my-instance-openai-key
+    model: gemini-2.0-flash
+    authSecretRef: my-instance-gcp-creds
 EOF
 
 # Watch the result
@@ -482,7 +482,7 @@ Security-restricted to paths under `/workspace`, `/skills`, `/tmp`, and `/ipc`.
 
 Writes an `OutboundMessage` to `/ipc/messages/send-<id>.json`. The IPC bridge relays it to NATS topic `channel.message.send`. The corresponding channel pod picks it up and delivers it.
 
-If `chatId` is empty, the message goes to the device owner (self-chat for WhatsApp, DM for others).
+If `spaceId` is empty, the message goes to the default space.
 
 ### `fetch_url`
 
