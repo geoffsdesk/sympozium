@@ -107,6 +107,100 @@ This fork transforms Sympozium into a **100% Google Cloud Platform** stack. Ever
 
 - `cloud.google.com/go/pubsub`
 - `cloud.google.com/go/vertexai`
+- `cloud.google.com/go/firestore`
+- `cloud.google.com/go/secretmanager`
+
+---
+
+## New Features (GCP Fork)
+
+### Workload Identity Federation
+
+Keyless authentication for all Sympozium pods on GKE — no service account keys to manage. Pods authenticate directly to Vertex AI, Cloud Pub/Sub, Secret Manager, and Firestore using GKE Workload Identity.
+
+```bash
+# One-time setup:
+./scripts/setup-workload-identity.sh YOUR_PROJECT_ID sympozium-system
+
+# Then deploy with:
+helm install sympozium ./charts/sympozium \
+  --set gcp.workloadIdentity.enabled=true \
+  --set gcp.workloadIdentity.gcpServiceAccount=sympozium-sa@PROJECT.iam.gserviceaccount.com
+```
+
+**Files:** `pkg/gcpauth/workload_identity.go`, `scripts/setup-workload-identity.sh`
+
+### Secret Manager Integration
+
+Store API keys and credentials in Google Cloud Secret Manager instead of Kubernetes Secrets. Supports caching, automatic version resolution, and the `sm://` prefix convention.
+
+```yaml
+# In your SympoziumInstance, reference secrets with:
+authSecretRef: "sm://vertexai-api-key"  # resolves from Secret Manager
+```
+
+**Files:** `pkg/gcpauth/secretmanager.go`
+
+### Gemini Model Tiers
+
+Three built-in tiers map human-friendly names to specific Gemini models:
+
+| Tier | Model | Best For | Cost (per 1M tokens) |
+|------|-------|----------|---------------------|
+| `fast` | gemini-2.0-flash | Monitoring, health checks, simple queries | $0.075 / $0.30 |
+| `balanced` | gemini-2.5-flash | General tasks, moderate complexity | $0.15 / $0.60 |
+| `powerful` | gemini-2.5-pro | Incident response, code review, architecture | $1.25 / $10.00 |
+
+Use tiers in PersonaPacks: `model: "fast"` or `model: "powerful"` instead of raw model IDs.
+
+**Files:** `pkg/models/tiers.go`
+
+### Google Chat Interactive Cards
+
+The Google Chat channel now supports rich card responses, slash commands, and threaded conversations:
+
+- `/ask <question>` — Ask the agent a question
+- `/status` — Show platform status
+- `/run <persona> <task>` — Dispatch a specific persona
+- `/help` — Show available commands
+- Interactive retry buttons on agent responses
+- Welcome cards when bot is added to a space
+
+**Files:** `channels/googlechat/main.go`
+
+### Cloud Run Jobs Runtime
+
+Run agents as serverless Cloud Run Jobs instead of GKE Jobs. Faster cold starts, no cluster capacity planning, automatic scaling to zero.
+
+```yaml
+# In AgentRun spec:
+runtime: cloudrun  # or "gke" (default)
+```
+
+**Files:** `pkg/runtime/cloudrun.go`
+
+### Firestore Agent Memory
+
+Replace ConfigMap-based memory (1MB limit) with Firestore for unlimited, indexed, real-time agent memory. Includes transcript storage for run history.
+
+```yaml
+# Enable in Helm values:
+gcp:
+  firestore:
+    enabled: true
+```
+
+**Files:** `pkg/memory/firestore.go`
+
+### Cloud Build CI/CD
+
+Fully GCP-native CI/CD pipeline replacing GitHub Actions. Builds all images, pushes to Artifact Registry, and deploys to GKE on main branch.
+
+```bash
+gcloud builds submit --config=cloudbuild.yaml
+```
+
+**Files:** `cloudbuild.yaml`
 
 ---
 
@@ -179,18 +273,20 @@ Sympozium serves **two powerful use cases** on one Kubernetes-native platform:
                            |
                   Sympozium Controller (GKE)
                            |
-               +-----------+-----------+
-               |           |           |
-          Agent Pods   Cloud SQL    Vertex AI
-          (GKE Jobs)  (PostgreSQL)  (Gemini)
-               |
-        +------+------+
-        |      |      |
-     Skills  IPC    Sandbox
-    Sidecars Bridge  Container
+         +---------+-------+-------+-----------+
+         |         |       |       |           |
+    Agent Runs  Cloud SQL  Vertex AI  Firestore  Secret
+    (GKE Jobs  (Postgres)  (Gemini)  (Memory)   Manager
+     or Cloud              fast /
+     Run Jobs)           balanced /
+         |               powerful
+  +------+------+
+  |      |      |
+Skills  IPC    Sandbox
+Sidecars Bridge Container
 ```
 
-**All components run on GKE** with Cloud Pub/Sub for event-driven communication, Vertex AI Gemini for LLM inference, Cloud SQL for persistence, and Artifact Registry for container images.
+**All components run on GKE** with Cloud Pub/Sub for event-driven communication, Vertex AI Gemini for LLM inference (3 model tiers), Cloud SQL for persistence, Firestore for agent memory, Secret Manager for credentials, Cloud Build for CI/CD, and Artifact Registry for container images. Workload Identity provides keyless authentication across all services.
 
 ---
 

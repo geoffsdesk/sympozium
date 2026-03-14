@@ -237,3 +237,31 @@ gcp:
   cloudSqlInstance: ""
   # -- Artifact Registry repository path
   artifactRegistry: "us-docker.pkg.dev/sympozium/sympozium"
+  # -- Workload Identity Federation configuration for keyless GCP auth on GKE
+  workloadIdentity:
+    # -- Enable Workload Identity (requires GKE cluster with WI enabled)
+    enabled: false
+    # -- Kubernetes service account name
+    serviceAccount: "sympozium-sa"
+    # -- GCP IAM service account email (e.g., sympozium@project.iam.gserviceaccount.com)
+    gcpServiceAccount: ""
+  # -- Secret Manager integration for credential management
+  secretManager:
+    # -- Enable Google Cloud Secret Manager
+    enabled: false
+    # -- Prefix for secrets in Secret Manager (e.g., "sympozium-")
+    prefix: "sympozium-"
+  # -- Cloud SQL Proxy configuration
+  cloudSql:
+    # -- Enable Cloud SQL Proxy sidecar
+    enabled: false
+    # -- Instance connection name (e.g., project:region:instance)
+    instanceConnectionName: ""
+    # -- Database name
+    database: "sympozium"
+  # -- Artifact Registry configuration
+  artifactRegistry:
+    # -- Enable Artifact Registry integration
+    enabled: true
+    # -- Repository path (e.g., us-docker.pkg.dev/project/repo)
+    repository: "us-docker.pkg.dev/sympozium/sympozium"

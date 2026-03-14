@@ -1,0 +1,237 @@
+# Cloud Build configuration for Sympozium GCP fork.
+# Builds all container images and pushes to Artifact Registry.
+#
+# Trigger: Push to main branch or tag matching v*
+#
+# Required substitutions:
+#   _REGION: GCP region (default: us-central1)
+#   _REPOSITORY: Artifact Registry repository
+#
+# Required IAM roles for Cloud Build service account:
+#   - roles/artifactregistry.writer
+#   - roles/container.developer (for GKE deploys)
+#   - roles/run.developer (for Cloud Run deploys)
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: us-docker.pkg.dev/${PROJECT_ID}/sympozium
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # Step 0: Run tests
+  - name: 'golang:1.23'
+    id: test
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        go test ./... -v -count=1 -race
+        go vet ./...
+
+  # Step 1: Build controller image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-controller
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/controller:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/controller:latest'
+      - '-f'
+      - 'images/controller/Dockerfile'
+      - '.'
+
+  # Step 2: Build agent-runner image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-agent-runner
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/agent-runner:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/agent-runner:latest'
+      - '-f'
+      - 'images/agent-runner/Dockerfile'
+      - '.'
+
+  # Step 3: Build webhook image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-webhook
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/webhook:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/webhook:latest'
+      - '-f'
+      - 'images/webhook/Dockerfile'
+      - '.'
+
+  # Step 4: Build apiserver image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-apiserver
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/apiserver:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/apiserver:latest'
+      - '-f'
+      - 'images/apiserver/Dockerfile'
+      - '.'
+
+  # Step 5: Build web-proxy image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-web-proxy
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/web-proxy:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/web-proxy:latest'
+      - '-f'
+      - 'images/web-proxy/Dockerfile'
+      - '.'
+
+  # Step 6: Build Google Chat channel image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-channel-googlechat
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/channel-googlechat:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/channel-googlechat:latest'
+      - '-f'
+      - 'images/channel-googlechat/Dockerfile'
+      - '.'
+
+  # Step 7: Build Discord channel image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-channel-discord
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/channel-discord:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/channel-discord:latest'
+      - '-f'
+      - 'images/channel-discord/Dockerfile'
+      - '.'
+
+  # Step 8: Build IPC bridge image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-ipc-bridge
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/ipc-bridge:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/ipc-bridge:latest'
+      - '-f'
+      - 'images/ipc-bridge/Dockerfile'
+      - '.'
+
+  # Step 9: Build skill images
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-skill-k8s-ops
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/skill-k8s-ops:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/skill-k8s-ops:latest'
+      - '-f'
+      - 'images/skill-k8s-ops/Dockerfile'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-skill-github-gitops
+    waitFor: ['test']
+    args:
+      - 'build'
+      - '-t'
+      - '${_REPOSITORY}/skill-gcp-gitops:${SHORT_SHA}'
+      - '-t'
+      - '${_REPOSITORY}/skill-gcp-gitops:latest'
+      - '-f'
+      - 'images/skill-github-gitops/Dockerfile'
+      - '.'
+
+  # Step 10: Push all images
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-images
+    waitFor:
+      - build-controller
+      - build-agent-runner
+      - build-webhook
+      - build-apiserver
+      - build-web-proxy
+      - build-channel-googlechat
+      - build-channel-discord
+      - build-ipc-bridge
+      - build-skill-k8s-ops
+      - build-skill-github-gitops
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        images=(
+          controller agent-runner webhook apiserver web-proxy
+          channel-googlechat channel-discord ipc-bridge
+          skill-k8s-ops skill-gcp-gitops
+        )
+        for img in "$${images[@]}"; do
+          docker push ${_REPOSITORY}/$$img:${SHORT_SHA}
+          docker push ${_REPOSITORY}/$$img:latest
+        done
+
+  # Step 11: Deploy to GKE (only on main branch)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: deploy-gke
+    waitFor: ['push-images']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$BRANCH_NAME" = "main" ]; then
+          echo "Deploying to GKE..."
+          gcloud container clusters get-credentials sympozium-cluster \
+            --region ${_REGION} --project ${PROJECT_ID}
+          helm upgrade --install sympozium ./charts/sympozium \
+            --namespace sympozium-system \
+            --create-namespace \
+            --set gcp.projectId=${PROJECT_ID} \
+            --set gcp.location=${_REGION} \
+            --set gcp.workloadIdentity.enabled=true \
+            --set controller.image.tag=${SHORT_SHA} \
+            --set agentRunner.image.tag=${SHORT_SHA} \
+            --wait --timeout 300s
+        else
+          echo "Skipping deploy (branch: $BRANCH_NAME)"
+        fi
+
+# Push images to Artifact Registry
+images:
+  - '${_REPOSITORY}/controller:${SHORT_SHA}'
+  - '${_REPOSITORY}/controller:latest'
+  - '${_REPOSITORY}/agent-runner:${SHORT_SHA}'
+  - '${_REPOSITORY}/agent-runner:latest'
+  - '${_REPOSITORY}/webhook:${SHORT_SHA}'
+  - '${_REPOSITORY}/webhook:latest'
+  - '${_REPOSITORY}/apiserver:${SHORT_SHA}'
+  - '${_REPOSITORY}/apiserver:latest'
+
+timeout: '1800s'
