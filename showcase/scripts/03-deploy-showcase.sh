@@ -75,7 +75,7 @@ gcloud builds submit "${SHOWCASE_DIR}" \
 # Step 5: Deploy showcase site
 # -------------------------------------------------------------------
 echo "→ Step 5: Deploying showcase site..."
-sed "s|YOUR_PROJECT|${PROJECT_ID}|g" "${SHOWCASE_DIR}/k8s/showcase-site.yaml" | kubectl apply -f -
+sed "s|SHOWCASE_PROJECT_ID|${PROJECT_ID}|g" "${SHOWCASE_DIR}/k8s/showcase-site.yaml" | kubectl apply -f -
 
 echo "  Waiting for showcase site..."
 kubectl wait --for=condition=Available deployment/showcase-site \

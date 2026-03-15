@@ -74,17 +74,9 @@ data:
         options:
           path: /var/lib/grafana/dashboards
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboards
-  namespace: sympozium-showcase
-  labels:
-    app.kubernetes.io/name: grafana
-data:
-  # The dashboard JSON is mounted from the repo's config/observability/grafana-dashboard.json
-  # In production, use a ConfigMap generator or volume mount.
-  # For now, this placeholder triggers the provider — the actual JSON is copied in the Dockerfile.
+# NOTE: The grafana-dashboards ConfigMap is created separately in the deploy script
+# (Step 2) from the actual JSON file. Do NOT define it here or it will overwrite
+# the dashboard data with an empty ConfigMap.
 ---
 apiVersion: apps/v1
 kind: Deployment

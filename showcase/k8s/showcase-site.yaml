@@ -29,7 +29,7 @@ spec:
       containers:
         - name: nginx
           # Replace with your Artifact Registry image
-          image: us-docker.pkg.dev/YOUR_PROJECT/sympozium/showcase-site:latest
+          image: us-docker.pkg.dev/SHOWCASE_PROJECT_ID/sympozium/showcase-site:latest
           ports:
             - name: http
               containerPort: 8080
