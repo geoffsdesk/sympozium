@@ -1,0 +1,191 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Why I Forked Sympozium for 100% Google Cloud">
+
+<article class="blog-post">
+  <div class="post-inner">
+
+    <header>
+      <a href="/blog" class="back">← Back to Build Log</a>
+      <time>March 15, 2026</time>
+      <h1>Why I Forked Sympozium for 100% Google Cloud</h1>
+      <p class="lead">The original platform supports OpenAI, Anthropic, Azure, and Ollama. I stripped it all out and rebuilt for GKE + Gemini. Here's why a single-cloud bet makes sense for Kubernetes-native AI.</p>
+    </header>
+
+    <section>
+      <h2>The Starting Point</h2>
+      <p>
+        Sympozium is an open-source, Kubernetes-native AI agent orchestration platform created by
+        Alex Jones. It's genuinely impressive — CRDs for agent personas, skill sidecars, policy
+        admission controllers, and an event bus for inter-agent communication. The architecture
+        is sound.
+      </p>
+      <p>
+        But the original supports <em>everything</em>: OpenAI, Anthropic, Azure OpenAI, Ollama,
+        plus Slack, Telegram, WhatsApp, and Discord as channels, NATS JetStream as the event bus,
+        GitHub Actions for CI/CD, and GHCR for container images. That breadth is a feature for
+        the open-source community. For a GCP-focused deployment, it's complexity.
+      </p>
+    </section>
+
+    <section>
+      <h2>The Thesis: Single-Cloud Coherence</h2>
+      <p>
+        Multi-cloud AI platforms pay a tax at every integration point. Each LLM provider has a
+        different API shape, different auth model, different rate limiting behavior, and different
+        pricing structure. The abstraction layer that normalizes them is never free — it's code
+        you maintain, edge cases you handle, and capabilities you can't access because they don't
+        exist across all providers.
+      </p>
+      <p>
+        By going 100% Google Cloud, I removed that abstraction layer entirely. The platform speaks
+        Vertex AI natively. Auth is Workload Identity — no API keys, no JSON credentials, no
+        secret rotation. The event bus is Cloud Pub/Sub — no NATS cluster to operate. Credentials
+        live in Secret Manager — no Kubernetes Secrets base64 encoding. Every component
+        authenticates to every other component through GKE's identity plane.
+      </p>
+    </section>
+
+    <section>
+      <h2>What Got Replaced</h2>
+      <p>
+        Here's the full mapping. Every non-Google service was replaced with a GCP-native equivalent:
+      </p>
+
+      <div class="replacement-table">
+        <div class="rep-row rep-header">
+          <span>Before</span>
+          <span>After</span>
+          <span>Why</span>
+        </div>
+        <div class="rep-row">
+          <span>OpenAI / Anthropic / Azure</span>
+          <span>Vertex AI Gemini</span>
+          <span>Three model tiers (Flash, Pro, Preview) with function calling</span>
+        </div>
+        <div class="rep-row">
+          <span>Ollama</span>
+          <span>Gemma 3 on vLLM/TGI</span>
+          <span>Self-hosted on GKE GPU (L4, A100) and TPU v5e nodes</span>
+        </div>
+        <div class="rep-row">
+          <span>NATS JetStream</span>
+          <span>Cloud Pub/Sub</span>
+          <span>Managed, no cluster to operate, trace context propagation</span>
+        </div>
+        <div class="rep-row">
+          <span>Slack / Telegram / WhatsApp</span>
+          <span>Google Chat</span>
+          <span>Cards v2, slash commands, native Workspace integration</span>
+        </div>
+        <div class="rep-row">
+          <span>K8s Secrets</span>
+          <span>Secret Manager</span>
+          <span>Versioning, audit logging, IAM-based access control</span>
+        </div>
+        <div class="rep-row">
+          <span>ConfigMap memory</span>
+          <span>Firestore</span>
+          <span>No 1MB limit, structured documents, optimistic concurrency</span>
+        </div>
+        <div class="rep-row">
+          <span>GitHub Actions + GHCR</span>
+          <span>Cloud Build + Artifact Registry</span>
+          <span>Same-VPC builds, Workload Identity, vulnerability scanning</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>The Model Tier System</h2>
+      <p>
+        One of the biggest design decisions was the model tier system. Instead of "pick a model
+        name string," every agent persona maps to a tier:
+      </p>
+      <ul>
+        <li><strong>Fast</strong> (gemini-2.5-flash) — monitoring, log tailing, status checks</li>
+        <li><strong>Balanced</strong> (gemini-2.5-pro) — the default, code review, incident response</li>
+        <li><strong>Powerful</strong> (gemini-3.1-pro-preview) — security audits, complex planning</li>
+        <li><strong>Local</strong> (gemma-3-27b-it) — self-hosted, air-gapped, cost-sensitive</li>
+      </ul>
+      <p>
+        The SRE persona gets "fast" because it needs quick responses during incidents. The
+        security auditor gets "powerful" because it needs deep reasoning. The default for
+        everything is Pro — not Flash. This was a deliberate choice: optimize for quality first,
+        then use tiers to control cost where it matters.
+      </p>
+    </section>
+
+    <section>
+      <h2>Hybrid Inference</h2>
+      <p>
+        The most interesting architecture decision is hybrid inference. A <code>node-probe</code>
+        DaemonSet runs on every GPU and TPU node in the GKE cluster. It checks for vLLM, TGI,
+        and TPU inference servers at known ports, discovers which Gemma models are loaded, and
+        annotates the node.
+      </p>
+      <p>
+        The controller then has a live map of what models are available where. An agent run can
+        be routed to Vertex AI Gemini for cloud inference or to a specific GKE node running
+        Gemma locally — all transparent to the persona definition.
+      </p>
+      <p>
+        For TPU nodes specifically, the probe detects GKE-specific node labels
+        (<code>cloud.google.com/gke-tpu-topology</code>,
+        <code>cloud.google.com/gke-tpu-accelerator</code>) and sets a
+        <code>sympozium.ai/inference-accelerator: tpu</code> annotation. The Helm chart includes
+        TPU tolerations so the probe runs on TPU-only node pools.
+      </p>
+    </section>
+
+    <section>
+      <h2>What's Next</h2>
+      <p>
+        Three features are on the roadmap that push this further into GCP-native territory:
+      </p>
+      <ul>
+        <li><strong>GKE Inference Gateway</strong> — model-aware routing with KV-cache-aware load balancing for self-hosted models</li>
+        <li><strong>GKE Agent Sandbox</strong> — gVisor isolation for agent pods with sub-second warm pool startup</li>
+        <li><strong>Kubecost integration</strong> — per-agent, per-model cost attribution using Kubernetes labels</li>
+      </ul>
+      <p>
+        The goal is a platform where every Kubernetes concept — Pods, Jobs, DaemonSets, CRDs,
+        admission webhooks — maps to an AI agent concept, and every GCP service is used for
+        what it does best. Not a wrapper around APIs, but a native platform.
+      </p>
+    </section>
+
+  </div>
+</article>
+
+<style>
+  .blog-post { padding: 60px 24px 80px; }
+  .post-inner { max-width: 700px; margin: 0 auto; }
+  .back { font-size: 13px; color: var(--gcp-blue); text-decoration: none; display: block; margin-bottom: 16px; }
+  .back:hover { text-decoration: underline; }
+  header time { font-size: 13px; color: var(--text-muted); }
+  header h1 { font-size: 40px; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; margin-top: 8px; }
+  .lead { font-size: 18px; line-height: 1.7; color: var(--text-muted); margin-top: 16px; }
+
+  section { margin-top: 40px; }
+  section h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+  section p { font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 16px; }
+  section ul { list-style: none; padding: 0; }
+  section li { font-size: 15px; line-height: 1.7; color: var(--text-muted); padding: 6px 0 6px 20px; position: relative; }
+  section li::before { content: '→'; position: absolute; left: 0; color: var(--gcp-blue); }
+  section li strong { color: var(--text); }
+  section code { font-size: 14px; background: var(--surface-3); padding: 2px 6px; border-radius: 4px; }
+  section em { color: var(--text); font-style: italic; }
+
+  .replacement-table { margin-top: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .rep-row { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 12px; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .rep-row:last-child { border-bottom: none; }
+  .rep-header { background: var(--surface-3); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+  .rep-row span:first-child { color: var(--text-muted); text-decoration: line-through; }
+  .rep-row:not(.rep-header) span:first-child { opacity: 0.7; }
+  .rep-row span:nth-child(2) { color: var(--gcp-green); font-weight: 600; }
+  .rep-row span:nth-child(3) { color: var(--text-muted); }
+</style>
+
+</Base>

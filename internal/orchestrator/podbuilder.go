@@ -20,8 +20,8 @@ type PodBuilder struct {
 	// DefaultSandboxImage is the default sandbox sidecar image.
 	DefaultSandboxImage string
 
-	// EventBusURL is the URL of the event bus (NATS).
-	EventBusURL string
+	// GCPProjectID is the GCP project ID for Pub/Sub event bus.
+	GCPProjectID string
 
 	// ImageTag is the image tag to use for all Sympozium images.
 	ImageTag string
@@ -39,7 +39,7 @@ func NewPodBuilder(tag string) *PodBuilder {
 		DefaultAgentImage:     fmt.Sprintf("%s/agent-runner:%s", imageRegistry, tag),
 		DefaultIPCBridgeImage: fmt.Sprintf("%s/ipc-bridge:%s", imageRegistry, tag),
 		DefaultSandboxImage:   fmt.Sprintf("%s/sandbox:%s", imageRegistry, tag),
-		EventBusURL:           "nats://nats.sympozium-system.svc:4222",
+		GCPProjectID:          "",
 		ImageTag:              tag,
 	}
 }
@@ -120,7 +120,7 @@ func (pb *PodBuilder) BuildIPCBridgeContainer(config AgentPodConfig) corev1.Cont
 	env := []corev1.EnvVar{
 		{Name: "AGENT_RUN_ID", Value: config.RunID},
 		{Name: "INSTANCE_NAME", Value: config.InstanceName},
-		{Name: "EVENT_BUS_URL", Value: pb.EventBusURL},
+		{Name: "GCP_PROJECT_ID", Value: pb.GCPProjectID},
 	}
 	if config.Traceparent != "" {
 		env = append(env, corev1.EnvVar{Name: "TRACEPARENT", Value: config.Traceparent})

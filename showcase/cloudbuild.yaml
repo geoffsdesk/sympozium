@@ -1,0 +1,47 @@
+# Cloud Build pipeline for the showcase site.
+# Triggered on pushes to main that modify showcase/ files.
+#
+# Usage:
+#   gcloud builds submit --config=showcase/cloudbuild.yaml showcase/
+#
+# Or set up a trigger:
+#   gcloud builds triggers create github \
+#     --repo-name=sympozium --repo-owner=geoffsdesk \
+#     --branch-pattern='^main$' \
+#     --build-config=showcase/cloudbuild.yaml \
+#     --included-files='showcase/**'
+steps:
+  # Build the showcase site image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-docker.pkg.dev/$PROJECT_ID/sympozium/showcase-site:$SHORT_SHA'
+      - '-t'
+      - 'us-docker.pkg.dev/$PROJECT_ID/sympozium/showcase-site:latest'
+      - '.'
+    dir: 'showcase'
+
+  # Push both tags
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', 'us-docker.pkg.dev/$PROJECT_ID/sympozium/showcase-site']
+
+  # Update the deployment
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/showcase-site'
+      - 'nginx=us-docker.pkg.dev/$PROJECT_ID/sympozium/showcase-site:$SHORT_SHA'
+      - '-n'
+      - 'sympozium-showcase'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER}'
+
+substitutions:
+  _REGION: us-central1
+  _CLUSTER: sympozium-cluster
+
+options:
+  logging: CLOUD_LOGGING_ONLY

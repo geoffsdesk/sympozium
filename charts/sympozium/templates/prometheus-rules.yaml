@@ -1,0 +1,57 @@
+{{- if and .Values.observability.enabled .Values.observability.gmp.enabled .Values.observability.gmp.alerting.enabled }}
+apiVersion: monitoring.googleapis.com/v1
+kind: Rules
+metadata:
+  name: {{ include "sympozium.fullname" . }}-alerts
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sympozium.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: sympozium.agent
+      interval: 60s
+      rules:
+        - alert: SympoziumAgentRunFailureRateHigh
+          expr: |
+            (
+              sum(rate(sympozium_agent_runs_total{status="failed"}[5m])) by (instance_name)
+              /
+              sum(rate(sympozium_agent_runs_total[5m])) by (instance_name)
+            ) > {{ .Values.observability.gmp.alerting.failureRateWarning | default 0.25 }}
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Agent run failure rate high for instance {{`{{ $labels.instance_name }}`}}"
+        - alert: SympoziumAgentRunFailureRateCritical
+          expr: |
+            (
+              sum(rate(sympozium_agent_runs_total{status="failed"}[5m])) by (instance_name)
+              /
+              sum(rate(sympozium_agent_runs_total[5m])) by (instance_name)
+            ) > {{ .Values.observability.gmp.alerting.failureRateCritical | default 0.50 }}
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Agent run failure rate critical for instance {{`{{ $labels.instance_name }}`}}"
+        - alert: SympoziumTokenBudgetCritical
+          expr: |
+            sum(increase(gen_ai_usage_output_tokens_total[1h])) by (model) > {{ .Values.observability.gmp.alerting.tokenBudgetPerHour | default 2000000 }}
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Token budget exceeded for model {{`{{ $labels.model }}`}}"
+        - alert: SympoziumAgentRunLatencyHigh
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(sympozium_agent_run_duration_bucket[5m])) by (le, model)
+            ) > {{ .Values.observability.gmp.alerting.p95LatencyThresholdMs | default 120000 }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "P95 agent run latency high for model {{`{{ $labels.model }}`}}"
+{{- end }}

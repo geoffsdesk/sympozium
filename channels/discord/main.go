@@ -29,12 +29,12 @@ type DiscordChannel struct {
 
 func main() {
 	var instanceName string
-	var eventBusURL string
+	var gcpProjectID string
 	var botToken string
 	var listenAddr string
 
 	flag.StringVar(&instanceName, "instance", os.Getenv("INSTANCE_NAME"), "SympoziumInstance name")
-	flag.StringVar(&eventBusURL, "event-bus-url", os.Getenv("EVENT_BUS_URL"), "Event bus URL")
+	flag.StringVar(&gcpProjectID, "gcp-project-id", os.Getenv("GCP_PROJECT_ID"), "GCP project ID for Pub/Sub event bus")
 	flag.StringVar(&botToken, "bot-token", os.Getenv("DISCORD_BOT_TOKEN"), "Discord bot token")
 	flag.StringVar(&listenAddr, "addr", ":8080", "Listen address for health endpoint")
 	flag.Parse()
@@ -46,7 +46,7 @@ func main() {
 
 	log := zap.New(zap.UseDevMode(false)).WithName("channel-discord")
 
-	bus, err := eventbus.NewNATSEventBus(eventBusURL)
+	bus, err := eventbus.NewPubSubEventBus(gcpProjectID)
 	if err != nil {
 		log.Error(err, "failed to connect to event bus")
 		os.Exit(1)

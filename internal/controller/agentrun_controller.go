@@ -1253,7 +1253,7 @@ func (r *AgentRunReconciler) buildContainers(
 	ipcEnv := []corev1.EnvVar{
 		{Name: "AGENT_RUN_ID", Value: agentRun.Name},
 		{Name: "INSTANCE_NAME", Value: agentRun.Spec.InstanceRef},
-		{Name: "EVENT_BUS_URL", Value: "nats://nats.sympozium-system.svc:4222"},
+		{Name: "GCP_PROJECT_ID", Value: os.Getenv("GCP_PROJECT_ID")},
 	}
 
 	// Inject OTel env vars when observability is configured.
@@ -1331,7 +1331,7 @@ func (r *AgentRunReconciler) buildContainers(
 				{Name: "AGENT_RUN_ID", Value: agentRun.Name},
 				{Name: "INSTANCE_NAME", Value: agentRun.Spec.InstanceRef},
 				{Name: "AGENT_NAMESPACE", Value: agentRun.Namespace},
-				{Name: "EVENT_BUS_URL", Value: "nats://nats.sympozium-system.svc:4222"},
+				{Name: "GCP_PROJECT_ID", Value: os.Getenv("GCP_PROJECT_ID")},
 			},
 			VolumeMounts: []corev1.VolumeMount{
 				{Name: "ipc", MountPath: "/ipc"},

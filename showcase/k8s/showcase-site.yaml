@@ -1,0 +1,81 @@
+# The showcase site: Astro static build served by nginx.
+# Built via Cloud Build and pushed to Artifact Registry.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: showcase-site
+  namespace: sympozium-showcase
+  labels:
+    app.kubernetes.io/name: showcase-site
+    app.kubernetes.io/part-of: sympozium-showcase
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: showcase-site
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: showcase-site
+        app.kubernetes.io/part-of: sympozium-showcase
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101   # nginx user
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          # Replace with your Artifact Registry image
+          image: us-docker.pkg.dev/YOUR_PROJECT/sympozium/showcase-site:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: showcase-site
+  namespace: sympozium-showcase
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: showcase-site
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

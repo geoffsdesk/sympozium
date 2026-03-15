@@ -40,7 +40,7 @@ func main() {
 	var metricsAddr string
 	var probeAddr string
 	var enableLeaderElection bool
-	var natsURL string
+	var gcpProjectID string
 	var maxRunHistory int
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -48,7 +48,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&natsURL, "nats-url", "", "NATS URL for channel message routing. If empty, reads NATS_URL env var.")
+	flag.StringVar(&gcpProjectID, "gcp-project-id", "", "GCP project ID for Pub/Sub event bus. If empty, reads GCP_PROJECT_ID env var.")
 	flag.IntVar(&maxRunHistory, "max-run-history", controller.DefaultRunHistoryLimit,
 		"Maximum number of completed AgentRuns to keep per instance before pruning oldest.")
 	flag.Parse()
@@ -157,14 +157,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// --- Channel message router (optional — requires NATS) ---
-	if natsURL == "" {
-		natsURL = os.Getenv("NATS_URL")
+	// --- Channel message router (optional — requires Pub/Sub) ---
+	if gcpProjectID == "" {
+		gcpProjectID = os.Getenv("GCP_PROJECT_ID")
 	}
-	if natsURL != "" {
-		eb, err := eventbus.NewNATSEventBus(natsURL)
+	if gcpProjectID != "" {
+		eb, err := eventbus.NewPubSubEventBus(gcpProjectID)
 		if err != nil {
-			setupLog.Error(err, "unable to connect to NATS — channel routing disabled")
+			setupLog.Error(err, "unable to connect to Pub/Sub — channel routing disabled")
 		} else {
 			router := &controller.ChannelRouter{
 				Client:   mgr.GetClient(),
@@ -186,10 +186,10 @@ func main() {
 				os.Exit(1)
 			}
 
-			setupLog.Info("Channel message router enabled", "natsURL", natsURL)
+			setupLog.Info("Channel message router enabled", "projectID", gcpProjectID)
 		}
 	} else {
-		setupLog.Info("No NATS_URL configured — channel message routing disabled")
+		setupLog.Info("No GCP_PROJECT_ID configured — channel message routing disabled")
 	}
 
 	// Health checks

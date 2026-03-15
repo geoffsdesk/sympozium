@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+
+const sections = [
+  {
+    title: 'Getting Started',
+    items: [
+      { name: 'Quick Start', href: '/docs/getting-started', desc: 'Install Sympozium on GKE in 5 minutes' },
+      { name: 'Prerequisites', href: '/docs/getting-started#prerequisites', desc: 'GKE cluster, gcloud, Helm 3' },
+      { name: 'Workload Identity Setup', href: '/docs/getting-started#workload-identity', desc: 'Keyless auth configuration' },
+    ]
+  },
+  {
+    title: 'Architecture',
+    items: [
+      { name: 'Platform Overview', href: '/architecture', desc: 'Components, CRDs, and data flow' },
+      { name: 'Model Tier System', href: '/architecture#model-tiers', desc: 'Fast, Balanced, Powerful, Local' },
+      { name: 'Hybrid Inference', href: '/architecture#hybrid-inference', desc: 'Vertex AI + self-hosted Gemma' },
+      { name: 'Event Bus (Pub/Sub)', href: '/architecture#event-bus', desc: 'Agent IPC via Cloud Pub/Sub' },
+    ]
+  },
+  {
+    title: 'Concepts',
+    items: [
+      { name: 'Custom Resources', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/concepts/custom-resources.md', desc: 'SympoziumInstance, PersonaPack, SkillPack, AgentRun' },
+      { name: 'Personas', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/concepts/personapacks.md', desc: 'Agent roles, system prompts, model tier mapping' },
+      { name: 'Skills & Sidecars', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/concepts/skills.md', desc: 'Tool containers, RBAC, resource limits' },
+      { name: 'Channels', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/concepts/channels.md', desc: 'Google Chat, Discord integrations' },
+      { name: 'Policies', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/concepts/security.md', desc: 'Admission control, model/tool/network policies' },
+    ]
+  },
+  {
+    title: 'Guides',
+    items: [
+      { name: 'Observability', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/guides/observability.md', desc: 'Cloud Monitoring vs Prometheus/Grafana paths' },
+      { name: 'Writing Skills', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/guides/writing-skills.md', desc: 'Create custom tool sidecars' },
+      { name: 'Deploying This Showcase', href: '#deploy-showcase', desc: 'Run the full showcase on your own GKE cluster' },
+    ]
+  },
+  {
+    title: 'Reference',
+    items: [
+      { name: 'Helm Values', href: 'https://github.com/geoffsdesk/sympozium/tree/main/charts/sympozium/values.yaml', desc: 'Full chart configuration reference' },
+      { name: 'API Server', href: 'https://github.com/geoffsdesk/sympozium/tree/main/docs/reference/helm.md', desc: 'REST API endpoints' },
+      { name: 'Cloud Build Pipeline', href: 'https://github.com/geoffsdesk/sympozium/tree/main/cloudbuild.yaml', desc: 'CI/CD configuration' },
+    ]
+  },
+];
+---
+<Base title="Documentation">
+
+<section class="page-header">
+  <h1>Documentation</h1>
+  <p>Everything you need to deploy, operate, and extend Sympozium on Google Cloud.</p>
+</section>
+
+<section class="docs-grid">
+  <div class="docs-inner">
+    {sections.map((section) => (
+      <div class="doc-section">
+        <h2>{section.title}</h2>
+        <div class="doc-items">
+          {section.items.map((item) => (
+            <a href={item.href} class="doc-item">
+              <div class="doc-item-name">{item.name}</div>
+              <div class="doc-item-desc">{item.desc}</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    ))}
+
+    <div class="doc-section" id="deploy-showcase">
+      <h2>Deploy This Showcase</h2>
+      <p class="deploy-desc">Run the full Sympozium showcase — platform, Grafana, and this site — on your own GKE cluster.</p>
+      <div class="code-block">
+        <pre><code>
+# Clone the repo
+git clone https://github.com/geoffsdesk/sympozium.git
+cd sympozium/showcase
+
+# Set your config
+export GCP_PROJECT=your-project-id
+export DOMAIN=sympozium.yourdomain.dev
+export GCP_REGION=us-central1
+
+# Deploy everything
+./scripts/deploy.sh
+        </code></pre>
+      </div>
+      <p class="deploy-desc">
+        This reserves a static IP, builds the showcase site via Cloud Build, installs Sympozium
+        via Helm with GMP enabled, deploys Grafana with the pre-built dashboard, and creates a
+        GKE Ingress with Google-managed TLS. Takes about 10 minutes.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .page-header { padding: 80px 24px 40px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(66,133,244,0.06) 0%, transparent 70%); }
+  .page-header h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; }
+  .page-header p { color: var(--text-muted); margin-top: 12px; font-size: 18px; }
+
+  .docs-grid { padding: 40px 24px 80px; }
+  .docs-inner { max-width: 900px; margin: 0 auto; }
+
+  .doc-section { margin-bottom: 48px; }
+  .doc-section h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  .doc-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .doc-item { display: block; text-decoration: none; padding: 16px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; transition: border-color 0.15s; }
+  .doc-item:hover { border-color: rgba(66,133,244,0.4); }
+  .doc-item-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .doc-item-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .deploy-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px; }
+  .code-block { background: #0d1117; border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; overflow-x: auto; margin-bottom: 16px; }
+  .code-block pre { margin: 0; }
+  .code-block code { font-size: 13px; line-height: 1.6; color: #c9d1d9; }
+
+  @media (max-width: 768px) {
+    .doc-items { grid-template-columns: 1fr; }
+  }
+</style>
+
+</Base>

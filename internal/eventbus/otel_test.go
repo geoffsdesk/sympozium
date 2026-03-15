@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -14,7 +13,7 @@ import (
 
 // TestTraceContextPropagation verifies that InjectTraceContext and
 // ExtractTraceContext correctly round-trip W3C traceparent through
-// NATS message headers.
+// message attributes (Pub/Sub style map[string]string).
 func TestTraceContextPropagation(t *testing.T) {
 	exporter := tracetest.NewInMemoryExporter()
 	tp := sdktrace.NewTracerProvider(
@@ -39,18 +38,18 @@ func TestTraceContextPropagation(t *testing.T) {
 	originalTraceID := span.SpanContext().TraceID()
 	originalSpanID := span.SpanContext().SpanID()
 
-	// Inject into NATS headers (simulates Publish).
-	headers := nats.Header{}
-	InjectTraceContext(ctx, headers)
+	// Inject into attributes (simulates Publish).
+	attrs := map[string]string{}
+	InjectTraceContext(ctx, attrs)
 
-	// Verify traceparent header was set.
-	tp_header := headers.Get("traceparent")
+	// Verify traceparent was set.
+	tp_header := attrs["traceparent"]
 	if tp_header == "" {
-		t.Fatal("traceparent header not set after InjectTraceContext")
+		t.Fatal("traceparent not set after InjectTraceContext")
 	}
 
-	// Extract from NATS headers (simulates Subscribe).
-	extractedCtx := ExtractTraceContext(context.Background(), headers)
+	// Extract from attributes (simulates Subscribe).
+	extractedCtx := ExtractTraceContext(context.Background(), attrs)
 	extractedSC := trace.SpanContextFromContext(extractedCtx)
 
 	// The extracted context should have the same trace ID.
@@ -74,34 +73,34 @@ func TestTraceContextPropagation(t *testing.T) {
 	}
 }
 
-// TestExtractTraceContext_NilHeaders verifies that nil headers return
+// TestExtractTraceContext_NilAttrs verifies that nil attrs return
 // the original context unchanged.
-func TestExtractTraceContext_NilHeaders(t *testing.T) {
+func TestExtractTraceContext_NilAttrs(t *testing.T) {
 	ctx := context.Background()
 	result := ExtractTraceContext(ctx, nil)
 
 	sc := trace.SpanContextFromContext(result)
 	if sc.IsValid() {
-		t.Error("expected invalid span context from nil headers")
+		t.Error("expected invalid span context from nil attrs")
 	}
 }
 
-// TestExtractTraceContext_EmptyHeaders verifies that empty headers return
+// TestExtractTraceContext_EmptyAttrs verifies that empty attrs return
 // the original context unchanged.
-func TestExtractTraceContext_EmptyHeaders(t *testing.T) {
+func TestExtractTraceContext_EmptyAttrs(t *testing.T) {
 	ctx := context.Background()
-	result := ExtractTraceContext(ctx, nats.Header{})
+	result := ExtractTraceContext(ctx, map[string]string{})
 
 	sc := trace.SpanContextFromContext(result)
 	if sc.IsValid() {
-		t.Error("expected invalid span context from empty headers")
+		t.Error("expected invalid span context from empty attrs")
 	}
 }
 
-// TestNatsHeaderCarrier verifies the carrier interface implementation.
-func TestNatsHeaderCarrier(t *testing.T) {
-	h := nats.Header{}
-	carrier := &natsHeaderCarrier{header: h}
+// TestAttributeCarrier verifies the carrier interface implementation.
+func TestAttributeCarrier(t *testing.T) {
+	attrs := map[string]string{}
+	carrier := &attributeCarrier{attrs: attrs}
 
 	// Set and Get
 	carrier.Set("traceparent", "00-abc-def-01")

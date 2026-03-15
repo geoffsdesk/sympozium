@@ -1,0 +1,169 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Home">
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">Open Source · 100% Google Cloud · Kubernetes-Native</div>
+    <h1>AI Agents on GKE,<br/><span class="gradient-text">Powered by Gemini</span></h1>
+    <p class="hero-sub">
+      Sympozium is a Kubernetes-native AI agent orchestration platform — forked and
+      rebuilt from the ground up for Google Cloud. Vertex AI Gemini, Cloud Pub/Sub,
+      Workload Identity, and self-hosted Gemma on TPU nodes. No non-Google dependencies.
+    </p>
+    <div class="hero-actions">
+      <a href="/architecture" class="btn btn-primary">Explore Architecture</a>
+      <a href="/dashboards" class="btn btn-secondary">Live Dashboards</a>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="features-inner">
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(66,133,244,0.15); color: var(--gcp-blue);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+        </div>
+        <h3>Vertex AI Gemini</h3>
+        <p>Three model tiers — Flash for speed, Pro for balance, Preview for power. Default is gemini-2.5-pro across all agent personas.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(52,168,83,0.15); color: var(--gcp-green);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>
+        </div>
+        <h3>Hybrid Inference</h3>
+        <p>Route between Vertex AI and self-hosted Gemma 3 models on GKE GPU (L4, A100) and TPU v5e nodes. Node-probe auto-discovery.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(251,188,4,0.15); color: var(--gcp-yellow);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>Cloud Pub/Sub Event Bus</h3>
+        <p>NATS JetStream replaced with Cloud Pub/Sub for event-driven agent IPC. Topic auto-creation, trace context propagation, at-least-once delivery.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(234,67,53,0.15); color: var(--gcp-red);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Workload Identity</h3>
+        <p>Keyless authentication everywhere. No service account keys. GKE pods authenticate to GCP APIs via Workload Identity Federation.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(66,133,244,0.15); color: var(--gcp-blue);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <h3>Google Chat Channel</h3>
+        <p>Cards v2, slash commands, threading, typing indicators, interactive retry buttons. Native integration with Google Workspace.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(52,168,83,0.15); color: var(--gcp-green);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <h3>Observability</h3>
+        <p>OpenTelemetry → Cloud Trace + Cloud Monitoring. Google Managed Prometheus + Grafana dashboards for existing Prometheus stacks.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="model-tiers">
+  <div class="tiers-inner">
+    <h2>Model Tier System</h2>
+    <p class="tiers-sub">Every agent persona maps to a model tier. Route the right model to the right task.</p>
+    <div class="tier-grid">
+      <div class="tier-card tier-fast">
+        <div class="tier-label">Fast</div>
+        <div class="tier-model">gemini-2.5-flash</div>
+        <p>High-throughput, low-latency tasks. Monitoring, log tailing, status checks.</p>
+      </div>
+      <div class="tier-card tier-balanced">
+        <div class="tier-label">Balanced · Default</div>
+        <div class="tier-model">gemini-2.5-pro</div>
+        <p>General-purpose reasoning. Code review, incident response, architecture decisions.</p>
+      </div>
+      <div class="tier-card tier-powerful">
+        <div class="tier-label">Powerful</div>
+        <div class="tier-model">gemini-3.1-pro-preview</div>
+        <p>Complex multi-step tasks. Security audits, cross-system analysis, planning.</p>
+      </div>
+      <div class="tier-card tier-local">
+        <div class="tier-label">Local</div>
+        <div class="tier-model">gemma-3-27b-it</div>
+        <p>Self-hosted on GKE GPU/TPU nodes. Air-gapped environments, cost optimization.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="live-banner">
+  <div class="banner-inner">
+    <h2>This Platform is Running Live</h2>
+    <p>The dashboards on this site are real. Agents are processing requests, metrics are flowing through the OTel Collector, and Grafana is rendering actual data from this GKE cluster.</p>
+    <a href="/dashboards" class="btn btn-primary">View Live Dashboards</a>
+  </div>
+</section>
+
+<style>
+  /* Hero */
+  .hero { padding: 100px 24px 80px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(66,133,244,0.08) 0%, transparent 70%); }
+  .hero-inner { max-width: 800px; margin: 0 auto; }
+  .hero-badge { display: inline-block; font-size: 12px; font-weight: 600; color: var(--gcp-blue); border: 1px solid rgba(66,133,244,0.3); padding: 6px 16px; border-radius: 20px; margin-bottom: 24px; letter-spacing: 0.3px; }
+  .hero h1 { font-size: 56px; font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; }
+  .gradient-text { background: linear-gradient(135deg, var(--gcp-blue) 0%, var(--gcp-green) 50%, var(--gcp-yellow) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-sub { margin-top: 24px; font-size: 18px; line-height: 1.7; color: var(--text-muted); max-width: 640px; margin-left: auto; margin-right: auto; }
+  .hero-actions { margin-top: 40px; display: flex; gap: 16px; justify-content: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
+  .btn-primary { background: var(--gcp-blue); color: white; }
+  .btn-primary:hover { background: #5a9bf6; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface-3); }
+
+  /* Features */
+  .features { padding: 80px 24px; }
+  .features-inner { max-width: 1100px; margin: 0 auto; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; transition: border-color 0.15s; }
+  .feature-card:hover { border-color: rgba(66,133,244,0.4); }
+  .feature-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+
+  /* Model Tiers */
+  .model-tiers { padding: 80px 24px; background: var(--surface-2); }
+  .tiers-inner { max-width: 1100px; margin: 0 auto; text-align: center; }
+  .tiers-inner h2 { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; }
+  .tiers-sub { color: var(--text-muted); margin-top: 12px; font-size: 16px; }
+  .tier-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; text-align: left; }
+  .tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .tier-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .tier-fast .tier-label { color: var(--gcp-yellow); }
+  .tier-balanced .tier-label { color: var(--gcp-blue); }
+  .tier-powerful .tier-label { color: var(--gcp-red); }
+  .tier-local .tier-label { color: var(--gcp-green); }
+  .tier-balanced { border-color: rgba(66,133,244,0.4); box-shadow: 0 0 20px rgba(66,133,244,0.08); }
+  .tier-model { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+  .tier-card p { font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+
+  /* Live Banner */
+  .live-banner { padding: 80px 24px; text-align: center; background: radial-gradient(ellipse at 50% 100%, rgba(52,168,83,0.08) 0%, transparent 70%); }
+  .banner-inner { max-width: 600px; margin: 0 auto; }
+  .banner-inner h2 { font-size: 32px; font-weight: 800; }
+  .banner-inner p { color: var(--text-muted); margin: 16px 0 32px; line-height: 1.7; }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 36px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .tier-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+</Base>

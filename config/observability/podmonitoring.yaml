@@ -1,0 +1,60 @@
+# PodMonitoring for Google Managed Prometheus (GMP) on GKE.
+# GMP is the default managed Prometheus on GKE Autopilot and Standard clusters
+# with the managed collection feature enabled.
+#
+# This resource tells GMP to scrape the OTel Collector's Prometheus exporter
+# endpoint, making all Sympozium metrics available in Cloud Monitoring's
+# Prometheus-compatible query interface (PromQL in Cloud Console, Grafana, etc.).
+#
+# Apply with: kubectl apply -f config/observability/podmonitoring.yaml
+#
+# Prerequisites:
+#   - GKE cluster with managed collection enabled
+#     (Autopilot: on by default; Standard: enable via
+#      gcloud container clusters update CLUSTER --enable-managed-prometheus)
+#   - OTel Collector deployed (config/observability/otel-collector.yaml)
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: sympozium-otel-collector
+  namespace: sympozium-system
+  labels:
+    app.kubernetes.io/name: sympozium-otel-collector
+    app.kubernetes.io/part-of: sympozium
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sympozium-otel-collector
+  endpoints:
+    - port: prom-metrics   # matches the container port name in otel-collector.yaml
+      interval: 30s
+      path: /metrics
+  targetLabels:
+    metadata:
+      - pod
+      - container
+---
+# ClusterPodMonitoring variant — use this instead of PodMonitoring if you want
+# a single cluster-wide rule that works regardless of namespace.
+# Uncomment and apply if you prefer cluster-scoped monitoring.
+#
+# apiVersion: monitoring.googleapis.com/v1
+# kind: ClusterPodMonitoring
+# metadata:
+#   name: sympozium-otel-collector
+#   labels:
+#     app.kubernetes.io/name: sympozium-otel-collector
+#     app.kubernetes.io/part-of: sympozium
+# spec:
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: sympozium-otel-collector
+#   endpoints:
+#     - port: prom-metrics
+#       interval: 30s
+#       path: /metrics
+#   targetLabels:
+#     metadata:
+#       - pod
+#       - container

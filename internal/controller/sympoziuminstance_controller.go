@@ -248,7 +248,7 @@ func (r *SympoziumInstanceReconciler) buildChannelDeployment(
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Env: []corev1.EnvVar{
 								{Name: "INSTANCE_NAME", Value: instance.Name},
-								{Name: "EVENT_BUS_URL", Value: "nats://nats.sympozium-system.svc:4222"},
+								{Name: "GCP_PROJECT_ID", Value: os.Getenv("GCP_PROJECT_ID")},
 								{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: resolveOTelEndpoint(instance)},
 								{Name: "OTEL_EXPORTER_OTLP_PROTOCOL", Value: "grpc"},
 								{Name: "OTEL_SERVICE_NAME", Value: fmt.Sprintf("sympozium-channel-%s", ch.Type)},

@@ -1,0 +1,68 @@
+# GKE Ingress with Google-managed TLS certificate.
+# Routes:
+#   /            → showcase-site (Astro static)
+#   /grafana/    → Grafana (live dashboards)
+#   /api/        → Sympozium API Server (web UI + REST API)
+#
+# Prerequisites:
+#   - GKE cluster with HTTP(S) load balancing enabled
+#   - Static IP reserved: gcloud compute addresses create sympozium-showcase --global
+#   - DNS A record pointing your domain to the static IP
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: showcase-cert
+  namespace: sympozium-showcase
+spec:
+  domains:
+    - YOUR_DOMAIN_HERE   # e.g., sympozium.yourdomain.dev
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: showcase-backend-config
+  namespace: sympozium-showcase
+spec:
+  healthCheck:
+    requestPath: /
+    port: 8080
+  cdn:
+    enabled: true
+    cachePolicy:
+      includeHost: true
+      includeProtocol: true
+      includeQueryString: false
+  securityPolicy:
+    name: ""  # Optional: Cloud Armor policy name
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: showcase-ingress
+  namespace: sympozium-showcase
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "sympozium-showcase"
+    networking.gke.io/managed-certificates: "showcase-cert"
+    # Allow HTTP while TLS provisions (Google-managed cert needs HTTP challenge)
+    kubernetes.io/ingress.allow-http: "true"
+spec:
+  rules:
+    - host: YOUR_DOMAIN_HERE
+      http:
+        paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: showcase-site
+                port:
+                  number: 80

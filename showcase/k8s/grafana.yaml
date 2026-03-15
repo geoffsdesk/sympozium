@@ -1,0 +1,174 @@
+# Grafana deployment configured for public (anonymous) read-only access.
+# Uses Google Managed Prometheus as the data source via the GMP query frontend.
+#
+# Prerequisites:
+#   - Sympozium Helm chart installed in sympozium-system namespace
+#   - GMP PodMonitoring created (observability.gmp.enabled=true)
+#   - GCP project ID set in the datasource ConfigMap below
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: sympozium-showcase
+data:
+  grafana.ini: |
+    [server]
+    root_url = %(protocol)s://%(domain)s/grafana/
+    serve_from_sub_path = true
+
+    [auth.anonymous]
+    enabled = true
+    org_role = Viewer
+
+    [security]
+    allow_embedding = true
+
+    [dashboards]
+    default_home_dashboard_path = /var/lib/grafana/dashboards/sympozium-overview.json
+
+    [users]
+    allow_sign_up = false
+
+    [auth]
+    disable_login_form = true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: sympozium-showcase
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Google Managed Prometheus
+        type: prometheus
+        access: proxy
+        # For GMP: use the GMP query frontend service if running in-cluster,
+        # or the Cloud Monitoring Prometheus API endpoint.
+        # Option A (in-cluster GMP frontend, auto-deployed by GKE):
+        url: http://frontend.default.svc:9090
+        # Option B (Cloud Monitoring API — replace YOUR_PROJECT_ID):
+        # url: https://monitoring.googleapis.com/v1/projects/YOUR_PROJECT_ID/location/global/prometheus
+        isDefault: true
+        editable: false
+        jsonData:
+          timeInterval: "30s"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: sympozium-showcase
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: Sympozium
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: sympozium-showcase
+  labels:
+    app.kubernetes.io/name: grafana
+data:
+  # The dashboard JSON is mounted from the repo's config/observability/grafana-dashboard.json
+  # In production, use a ConfigMap generator or volume mount.
+  # For now, this placeholder triggers the provider — the actual JSON is copied in the Dockerfile.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: sympozium-showcase
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: sympozium-showcase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: sympozium-showcase
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana-oss:11.0.0
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_INSTALL_PLUGINS
+              value: ""
+          readinessProbe:
+            httpGet:
+              path: /grafana/api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+              readOnly: true
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: grafana-config
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: dashboard-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: sympozium-showcase
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

@@ -34,14 +34,14 @@ func init() {
 
 func main() {
 	var instanceName string
-	var eventBusURL string
+	var gcpProjectID string
 	var apiKey string
 	var addr string
 	var rpm int
 	var burst int
 
 	flag.StringVar(&instanceName, "instance", envStr("INSTANCE_NAME", envStr("SKILL_INSTANCE_NAME", "")), "SympoziumInstance name")
-	flag.StringVar(&eventBusURL, "event-bus-url", os.Getenv("EVENT_BUS_URL"), "Event bus (NATS) URL")
+	flag.StringVar(&gcpProjectID, "gcp-project-id", os.Getenv("GCP_PROJECT_ID"), "GCP project ID for Pub/Sub event bus")
 	flag.StringVar(&apiKey, "api-key", os.Getenv("WEB_PROXY_API_KEY"), "API key for authentication")
 	flag.StringVar(&addr, "addr", ":8080", "HTTP listen address")
 	flag.IntVar(&rpm, "rate-limit-rpm", envInt("RATE_LIMIT_RPM", envInt("SKILL_RATE_LIMIT_RPM", 60)), "Requests per minute rate limit")
@@ -59,10 +59,10 @@ func main() {
 
 	log := zap.New(zap.UseDevMode(false)).WithName("web-proxy")
 
-	// Connect to NATS event bus
-	bus, err := eventbus.NewNATSEventBus(eventBusURL)
+	// Connect to Pub/Sub event bus
+	bus, err := eventbus.NewPubSubEventBus(gcpProjectID)
 	if err != nil {
-		log.Error(err, "failed to connect to event bus")
+		log.Error(err, "failed to connect to Pub/Sub event bus")
 		os.Exit(1)
 	}
 	defer bus.Close()

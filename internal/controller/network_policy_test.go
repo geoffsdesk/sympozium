@@ -112,7 +112,7 @@ func TestBuildChannelDeployment_AllChannelTypes(t *testing.T) {
 }
 
 func TestBuildChannelDeployment_EventBusEnvVar(t *testing.T) {
-	// Channel pods must be able to reach the NATS event bus to deliver messages.
+	// Channel pods must have GCP_PROJECT_ID to connect to Pub/Sub event bus.
 	r := &SympoziumInstanceReconciler{}
 	instance := newTestInstance()
 	ch := instance.Spec.Channels[0]
@@ -121,16 +121,13 @@ func TestBuildChannelDeployment_EventBusEnvVar(t *testing.T) {
 	container := deploy.Spec.Template.Spec.Containers[0]
 	var found bool
 	for _, env := range container.Env {
-		if env.Name == "EVENT_BUS_URL" {
+		if env.Name == "GCP_PROJECT_ID" {
 			found = true
-			if !strings.Contains(env.Value, "nats://") {
-				t.Errorf("EVENT_BUS_URL = %q, expected nats:// prefix", env.Value)
-			}
 			break
 		}
 	}
 	if !found {
-		t.Error("EVENT_BUS_URL env var not found on channel container")
+		t.Error("GCP_PROJECT_ID env var not found on channel container")
 	}
 }
 

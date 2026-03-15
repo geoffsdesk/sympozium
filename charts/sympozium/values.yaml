@@ -76,6 +76,11 @@ webhook:
   tolerations: []
   affinity: {}
 
+# -- NATS (disabled — replaced by Cloud Pub/Sub in this fork)
+nats:
+  enabled: false
+  externalUrl: ""
+
 # -- Google Cloud Pub/Sub (event bus for agent IPC)
 pubsub:
   # -- GCP project ID for Pub/Sub
@@ -187,6 +192,26 @@ observability:
       otlpHttpPort: 4318
       metricsPort: 8889
       healthPort: 13133
+  # -- Google Managed Prometheus (GMP) integration.
+  # GMP is the default managed Prometheus on GKE. Enable this to create
+  # PodMonitoring CRs that auto-scrape the OTel Collector's Prometheus exporter,
+  # making Sympozium metrics available via PromQL in Cloud Console and Grafana.
+  gmp:
+    # -- Enable GMP PodMonitoring and Rules CRDs
+    enabled: false
+    # -- Scrape interval for PodMonitoring
+    scrapeInterval: "30s"
+    # -- Alerting rules (GMP Rules CRD)
+    alerting:
+      enabled: true
+      # -- Agent run failure rate threshold for warning alert (0.0 - 1.0)
+      failureRateWarning: 0.25
+      # -- Agent run failure rate threshold for critical alert (0.0 - 1.0)
+      failureRateCritical: 0.50
+      # -- Output token budget per hour before critical alert fires
+      tokenBudgetPerHour: 2000000
+      # -- P95 agent run latency threshold (ms) for warning alert
+      p95LatencyThresholdMs: 120000
   # -- Default instance observability settings (used when creating new instances)
   defaultInstance:
     enabled: true

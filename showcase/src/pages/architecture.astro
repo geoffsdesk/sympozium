@@ -1,0 +1,169 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Architecture">
+
+<section class="page-header">
+  <h1>Architecture</h1>
+  <p>How Sympozium GCP maps Kubernetes primitives to AI agent orchestration — entirely on Google Cloud.</p>
+</section>
+
+<section class="content">
+  <div class="content-inner">
+
+    <div class="arch-diagram">
+      <pre>{`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           GKE Cluster                                       │
+│                                                                             │
+│  ┌─────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐ │
+│  │  Controller  │   │  API Server  │   │   Webhook    │   │  Web Proxy   │ │
+│  │  (reconcile) │   │  (REST + UI) │   │  (admission) │   │  (OpenAI-    │ │
+│  │              │   │              │   │              │   │   compat)    │ │
+│  └──────┬───────┘   └──────┬───────┘   └──────────────┘   └──────────────┘ │
+│         │                  │                                                │
+│         │    ┌─────────────┴────────────────┐                              │
+│         │    │     Cloud Pub/Sub             │                              │
+│         │    │     (Event Bus)               │                              │
+│         │    └──────────────────────────┬────┘                              │
+│         │                               │                                   │
+│  ┌──────▼───────────────────────────────▼──────────────────────────────┐   │
+│  │                        Agent Pods (Jobs)                            │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │   │
+│  │  │ agent-runner │  │ skill-sidecar│  │ tool-sidecar │                │   │
+│  │  │ (Gemini API) │  │ (gcloud,etc)│  │ (kubectl,etc)│                │   │
+│  │  └──────┬───────┘  └─────────────┘  └─────────────┘                │   │
+│  └─────────┼──────────────────────────────────────────────────────────┘   │
+│            │                                                               │
+│  ┌─────────▼─────────┐  ┌──────────────────┐  ┌────────────────────┐     │
+│  │   Vertex AI        │  │  Self-Hosted      │  │   Node Probe       │     │
+│  │   Gemini API       │  │  (vLLM/TGI/       │  │   DaemonSet        │     │
+│  │                    │  │   Gemma on TPU)   │  │   (GPU/TPU nodes)  │     │
+│  └────────────────────┘  └──────────────────┘  └────────────────────┘     │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                    Observability Stack                              │    │
+│  │  OTel Collector → Cloud Trace + Cloud Monitoring                   │    │
+│  │                 → Prometheus (GMP) → Grafana                       │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐                  │
+│  │  Cloud SQL     │  │  Firestore    │  │  Secret Mgr   │                  │
+│  │  (PostgreSQL)  │  │  (Memory)     │  │  (Credentials)│                  │
+│  └───────────────┘  └───────────────┘  └───────────────┘                  │
+│                                                                             │
+│  ┌───────────────┐  ┌───────────────┐                                     │
+│  │  Google Chat   │  │  Discord      │     Channels (inbound)             │
+│  └───────────────┘  └───────────────┘                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+      `}</pre>
+    </div>
+
+    <h2>What Changed from Upstream</h2>
+
+    <div class="change-grid">
+      <div class="change-card">
+        <div class="change-before">OpenAI / Anthropic / Azure / Ollama</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Vertex AI Gemini (3 tiers) + Gemma 3 self-hosted</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">NATS JetStream</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Cloud Pub/Sub</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">Slack / Telegram / WhatsApp</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Google Chat (Cards v2, slash commands)</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">Kubernetes Secrets</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Secret Manager + Workload Identity</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">ConfigMap memory (1MB limit)</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Firestore (agent memory + transcripts)</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">GitHub Actions + GHCR</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Cloud Build + Artifact Registry</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">GPU-only inference</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">GPU + TPU v5e (GKE node labels)</div>
+      </div>
+      <div class="change-card">
+        <div class="change-before">Generic OTel export</div>
+        <div class="change-arrow">→</div>
+        <div class="change-after">Cloud Monitoring + GMP + Grafana dashboards</div>
+      </div>
+    </div>
+
+    <h2>Kubernetes CRDs</h2>
+    <p class="section-desc">Sympozium extends Kubernetes with custom resources for declarative agent management.</p>
+
+    <div class="crd-grid">
+      <div class="crd-card">
+        <code>SympoziumInstance</code>
+        <p>A running deployment of the platform with its own event bus topics, personas, and policies.</p>
+      </div>
+      <div class="crd-card">
+        <code>PersonaPack</code>
+        <p>Defines an AI agent's role, system prompt, model tier, and allowed tools/skills.</p>
+      </div>
+      <div class="crd-card">
+        <code>SkillPack</code>
+        <p>Packages a tool as a sidecar container with RBAC constraints and resource limits.</p>
+      </div>
+      <div class="crd-card">
+        <code>SympoziumPolicy</code>
+        <p>Admission rules controlling which models, tools, and network access agents are allowed.</p>
+      </div>
+      <div class="crd-card">
+        <code>AgentRun</code>
+        <p>An ephemeral agent execution — a Kubernetes Job with the agent-runner, skill sidecars, and event bus integration.</p>
+      </div>
+      <div class="crd-card">
+        <code>ChannelBinding</code>
+        <p>Connects a channel (Google Chat, Discord) to a SympoziumInstance for inbound user interaction.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .page-header { padding: 80px 24px 40px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(66,133,244,0.06) 0%, transparent 70%); }
+  .page-header h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; }
+  .page-header p { color: var(--text-muted); margin-top: 12px; font-size: 18px; }
+
+  .content { padding: 40px 24px 80px; }
+  .content-inner { max-width: 1000px; margin: 0 auto; }
+  .content-inner h2 { font-size: 28px; font-weight: 800; margin-top: 60px; margin-bottom: 20px; }
+  .section-desc { color: var(--text-muted); margin-bottom: 24px; }
+
+  .arch-diagram { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; }
+  .arch-diagram pre { font-size: 12px; line-height: 1.4; color: var(--text-muted); white-space: pre; }
+
+  .change-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .change-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .change-before { font-size: 13px; color: var(--gcp-red); opacity: 0.8; text-decoration: line-through; flex: 1; }
+  .change-arrow { color: var(--text-muted); font-size: 18px; }
+  .change-after { font-size: 13px; color: var(--gcp-green); font-weight: 600; flex: 1; }
+
+  .crd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .crd-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .crd-card code { font-size: 14px; font-weight: 600; color: var(--gcp-blue); }
+  .crd-card p { font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-top: 8px; }
+
+  @media (max-width: 768px) {
+    .change-grid, .crd-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+</Base>

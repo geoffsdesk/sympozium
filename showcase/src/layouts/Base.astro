@@ -1,0 +1,87 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = "Kubernetes-native AI Agent Platform — 100% Google Cloud" } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content={description} />
+  <title>{title} — Sympozium GCP</title>
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <style is:global>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    :root {
+      --gcp-blue: #4285f4;
+      --gcp-green: #34a853;
+      --gcp-yellow: #fbbc04;
+      --gcp-red: #ea4335;
+      --surface: #0f1117;
+      --surface-2: #1a1d27;
+      --surface-3: #242836;
+      --border: #2e3343;
+      --text: #e8eaed;
+      --text-muted: #9aa0a6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <img src="/icon.png" alt="" width="28" height="28" />
+        <span>Sympozium <span class="gcp-badge">GCP</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/architecture">Architecture</a>
+        <a href="/dashboards">Live Dashboards</a>
+        <a href="/blog">Blog</a>
+        <a href="/docs">Docs</a>
+        <a href="https://github.com/geoffsdesk/sympozium" class="nav-github" target="_blank">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>Built with <span class="gcp-colors">Google Cloud</span> on GKE</p>
+      <p class="footer-sub">Vertex AI Gemini · Cloud Pub/Sub · Cloud SQL · Artifact Registry · Workload Identity</p>
+    </div>
+  </footer>
+
+  <style>
+    .nav { position: sticky; top: 0; z-index: 50; background: rgba(15,17,23,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 18px; }
+    .gcp-badge { font-size: 11px; font-weight: 600; background: linear-gradient(135deg, var(--gcp-blue), var(--gcp-green)); color: white; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+    .nav-links { display: flex; align-items: center; gap: 24px; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-github { display: flex; }
+    .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer p { color: var(--text-muted); font-size: 14px; }
+    .footer-sub { margin-top: 8px; font-size: 12px; opacity: 0.6; }
+    .gcp-colors { background: linear-gradient(90deg, var(--gcp-blue), var(--gcp-red), var(--gcp-yellow), var(--gcp-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; }
+  </style>
+</body>
+</html>

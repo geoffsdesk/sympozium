@@ -20,25 +20,25 @@ func main() {
 	var basePath string
 	var agentRunID string
 	var instanceName string
-	var eventBusURL string
+	var gcpProjectID string
 
 	flag.StringVar(&basePath, "ipc-path", "/ipc", "Base path for IPC directory")
 	flag.StringVar(&agentRunID, "agent-run-id", os.Getenv("AGENT_RUN_ID"), "Agent run ID")
 	flag.StringVar(&instanceName, "instance", os.Getenv("INSTANCE_NAME"), "SympoziumInstance name")
-	flag.StringVar(&eventBusURL, "event-bus-url", os.Getenv("EVENT_BUS_URL"), "Event bus (NATS) URL")
+	flag.StringVar(&gcpProjectID, "gcp-project-id", os.Getenv("GCP_PROJECT_ID"), "GCP project ID for Pub/Sub event bus")
 	flag.Parse()
 
 	if agentRunID == "" {
 		panic("AGENT_RUN_ID is required")
 	}
-	if eventBusURL == "" {
-		eventBusURL = "nats://nats.sympozium-system.svc:4222"
+	if gcpProjectID == "" {
+		gcpProjectID = os.Getenv("GCP_PROJECT_ID")
 	}
 
 	log := zap.New(zap.UseDevMode(false)).WithName("ipc-bridge")
 
-	// Connect to event bus
-	bus, err := eventbus.NewNATSEventBus(eventBusURL)
+	// Connect to Pub/Sub event bus
+	bus, err := eventbus.NewPubSubEventBus(gcpProjectID)
 	if err != nil {
 		log.Error(err, "failed to connect to event bus")
 		os.Exit(1)

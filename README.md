@@ -31,7 +31,7 @@ This fork transforms Sympozium into a **100% Google Cloud Platform** stack. Ever
 | Anthropic SDK (`anthropic-sdk-go`) | Vertex AI REST API | GCP-native LLM |
 | Azure OpenAI | Removed | Non-Google |
 | Ollama | Removed | Replaced by Vertex AI |
-| Default model: `gpt-4o-mini` | Default model: `gemini-2.0-flash` | Google's flagship model |
+| Default model: `gpt-4o-mini` | Default model: `gemini-2.5-pro` | Google's most capable stable model |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | `GOOGLE_API_KEY` / `VERTEX_AI_API_KEY` | GCP credentials |
 | Provider: `openai`, `anthropic`, `ollama` | Provider: `vertexai`, `gemini` | Unified GCP provider |
 
@@ -84,6 +84,16 @@ This fork transforms Sympozium into a **100% Google Cloud Platform** stack. Ever
 | `otel/opentelemetry-collector` | `otel/opentelemetry-collector-contrib` | Includes `googlecloud` exporter |
 
 **Files changed:** `charts/sympozium/values.yaml`, `config/observability/otel-collector.yaml`
+
+### Observability: Google Managed Prometheus + Grafana
+
+| Before | After | Rationale |
+|--------|-------|-----------|
+| Prometheus exporter only | **GMP PodMonitoring** + **Grafana dashboard** | Native Prometheus on GKE |
+| No alerting rules | **GMP Rules** (failure rate, latency, token budget) | Production-grade alerts |
+| No dashboards | Pre-built Grafana JSON (14 panels) | Instant visibility |
+
+**Files added:** `config/observability/podmonitoring.yaml`, `config/observability/prometheus-rules.yaml`, `config/observability/grafana-dashboard.json`, `charts/sympozium/templates/podmonitoring.yaml`, `charts/sympozium/templates/prometheus-rules.yaml`, `docs/guides/observability.md`
 
 ### Skills: GCP-Centric
 
@@ -143,15 +153,16 @@ authSecretRef: "sm://vertexai-api-key"  # resolves from Secret Manager
 
 ### Gemini Model Tiers
 
-Three built-in tiers map human-friendly names to specific Gemini models:
+The default model is **Gemini 2.5 Pro** — Pro level across the board. Four built-in tiers map human-friendly names to specific models:
 
 | Tier | Model | Best For | Cost (per 1M tokens) |
 |------|-------|----------|---------------------|
-| `fast` | gemini-2.0-flash | Monitoring, health checks, simple queries | $0.075 / $0.30 |
-| `balanced` | gemini-2.5-flash | General tasks, moderate complexity | $0.15 / $0.60 |
-| `powerful` | gemini-2.5-pro | Incident response, code review, architecture | $1.25 / $10.00 |
+| `fast` | gemini-2.5-flash | Monitoring, health checks, simple queries | $0.15 / $0.60 |
+| **`balanced` (default)** | **gemini-2.5-pro** | **All standard tasks** | **$1.25 / $10.00** |
+| `powerful` | gemini-3.1-pro-preview | Complex reasoning, incident response, architecture | $1.25 / $10.00 |
+| `local` | gemma-3-27b/12b/4b/1b-it | Self-hosted on GKE GPU/TPU nodes | Compute cost only |
 
-Use tiers in PersonaPacks: `model: "fast"` or `model: "powerful"` instead of raw model IDs.
+Use tiers in PersonaPacks: `model: "balanced"` or `model: "powerful"` instead of raw model IDs.
 
 **Files:** `pkg/models/tiers.go`
 
@@ -201,6 +212,23 @@ gcloud builds submit --config=cloudbuild.yaml
 ```
 
 **Files:** `cloudbuild.yaml`
+
+### Google Managed Prometheus + Grafana
+
+For teams with an existing Prometheus/Grafana stack, Sympozium supports Google Managed Prometheus (GMP) out of the box. One Helm flag creates PodMonitoring and alerting Rules CRDs that feed Sympozium metrics into GMP's PromQL-compatible API.
+
+```bash
+helm install sympozium ./charts/sympozium \
+  --set gcp.projectId=YOUR_PROJECT_ID \
+  --set observability.enabled=true \
+  --set observability.gmp.enabled=true
+```
+
+A pre-built Grafana dashboard is included at `config/observability/grafana-dashboard.json` with 14 panels covering agent runs, token usage, tool invocations, latency percentiles, and error rates. Point Grafana at GMP's Prometheus endpoint or your self-hosted Prometheus and import the JSON.
+
+Built-in alerts fire on agent failure rates (>25% warning, >50% critical), P95 latency, and hourly token budgets — all configurable via Helm values.
+
+**Files:** `config/observability/podmonitoring.yaml`, `config/observability/prometheus-rules.yaml`, `config/observability/grafana-dashboard.json`, `docs/guides/observability.md`
 
 ### Hybrid Inference (from upstream)
 
@@ -330,6 +358,7 @@ Sidecars Bridge Container
 | Channels | [docs/concepts/channels.md](docs/concepts/channels.md) |
 | Security | [docs/concepts/security.md](docs/concepts/security.md) |
 | Vertex AI Setup | [docs/guides/ollama.md](docs/guides/ollama.md) |
+| Observability | [docs/guides/observability.md](docs/guides/observability.md) |
 | Helm Chart | [docs/reference/helm.md](docs/reference/helm.md) |
 | Writing Skills | [docs/guides/writing-skills.md](docs/guides/writing-skills.md) |
 

@@ -88,8 +88,8 @@ spec:
       - name: http
         containerPort: 8080
     env:
-      - name: EVENT_BUS_URL
-        value: "nats://nats.sympozium-system.svc:4222"
+      - name: GCP_PROJECT_ID
+        value: ""
     resources:
       cpu: "100m"
       memory: "128Mi"

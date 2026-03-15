@@ -34,13 +34,13 @@ func init() {
 func main() {
 	var addr string
 	var namespace string
-	var eventBusURL string
+	var gcpProjectID string
 	var token string
 	var serveUI bool
 
 	flag.StringVar(&addr, "addr", ":8080", "API server listen address")
 	flag.StringVar(&namespace, "namespace", "sympozium", "Sympozium namespace")
-	flag.StringVar(&eventBusURL, "event-bus-url", "nats://nats.sympozium-system.svc:4222", "Event bus URL")
+	flag.StringVar(&gcpProjectID, "gcp-project-id", os.Getenv("GCP_PROJECT_ID"), "GCP project ID for Pub/Sub event bus")
 	flag.StringVar(&token, "token", os.Getenv("SYMPOZIUM_UI_TOKEN"), "Bearer token for API authentication (or set SYMPOZIUM_UI_TOKEN)")
 	flag.BoolVar(&serveUI, "serve-ui", true, "Serve the embedded web UI alongside the API")
 	flag.Parse()
@@ -68,13 +68,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Connect to event bus (retry in background if unavailable).
+	// Connect to Pub/Sub event bus (optional — graceful degradation if unavailable).
 	var bus eventbus.EventBus
-	natsbus, err := eventbus.NewNATSEventBus(eventBusURL)
-	if err != nil {
-		log.Error(err, "event bus not available, starting without streaming support")
+	if gcpProjectID != "" {
+		pubsubBus, busErr := eventbus.NewPubSubEventBus(gcpProjectID)
+		if busErr != nil {
+			log.Error(busErr, "Pub/Sub event bus not available, starting without streaming support")
+		} else {
+			bus = pubsubBus
+		}
 	} else {
-		bus = natsbus
+		log.Info("No GCP_PROJECT_ID configured — event bus disabled")
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)

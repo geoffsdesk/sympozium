@@ -93,7 +93,7 @@ func (p *PubSubEventBus) Publish(ctx context.Context, topic string, event *Event
 	}
 
 	// Inject trace context into attributes
-	InjectTraceContext(ctx, natsHeaderAdapter(msg.Attributes))
+	InjectTraceContext(ctx, msg.Attributes)
 
 	result := t.Publish(ctx, msg)
 	_, err = result.Get(ctx)
@@ -104,23 +104,6 @@ func (p *PubSubEventBus) Publish(ctx context.Context, topic string, event *Event
 	return nil
 }
 
-// natsHeaderAdapter wraps a map to satisfy the header interface expected by InjectTraceContext.
-type natsHeaderAdapter map[string]string
-
-func (h natsHeaderAdapter) Set(key, value string) {
-	h[key] = value
-}
-
-func (h natsHeaderAdapter) Get(key string) string {
-	return h[key]
-}
-
-func (h natsHeaderAdapter) Values(key string) []string {
-	if v, ok := h[key]; ok {
-		return []string{v}
-	}
-	return nil
-}
 
 // Subscribe returns a channel that receives events for the given topic.
 func (p *PubSubEventBus) Subscribe(ctx context.Context, topic string) (<-chan *Event, error) {

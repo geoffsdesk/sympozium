@@ -37,27 +37,12 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    {{- if .Values.nats.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: nats
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- else }}
-    # External NATS — allow egress to any destination on port 4222
-    - to: []
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- end }}
-    # Allow HTTPS egress to cloud LLM providers (OpenAI, Anthropic, Azure, etc.)
+    # Allow HTTPS egress to Cloud Pub/Sub and Vertex AI APIs
     - to: []
       ports:
         - protocol: TCP
           port: 443
-    # Allow Kubernetes API server (post-DNAT port on some CNIs like kube-router)
+    # Allow Kubernetes API server
     - to: []
       ports:
         - protocol: TCP
@@ -134,22 +119,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    {{- if .Values.nats.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: nats
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- else }}
-    # External NATS — allow egress to any destination on port 4222
-    - to: []
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- end }}
-    # Allow HTTPS egress to channel platform APIs (Telegram, Slack, Discord, etc.)
+    # Allow HTTPS egress to Cloud Pub/Sub, Google Chat API, Discord API
     - to: []
       ports:
         - protocol: TCP
@@ -190,21 +160,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    {{- if .Values.nats.enabled }}
-    - to:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: nats
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- else }}
-    # External NATS — allow egress to any destination on port 4222
-    - to: []
-      ports:
-        - protocol: TCP
-          port: 4222
-    {{- end }}
+    # Allow HTTPS egress to Cloud Pub/Sub and Vertex AI
     - ports:
         - protocol: TCP
           port: 443

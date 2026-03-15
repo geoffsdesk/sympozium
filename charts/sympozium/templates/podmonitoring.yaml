@@ -1,0 +1,22 @@
+{{- if and .Values.observability.enabled .Values.observability.gmp.enabled }}
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: {{ include "sympozium.fullname" . }}-otel-collector
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "sympozium.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sympozium-otel-collector
+  endpoints:
+    - port: prom-metrics
+      interval: {{ .Values.observability.gmp.scrapeInterval | default "30s" }}
+      path: /metrics
+  targetLabels:
+    metadata:
+      - pod
+      - container
+{{- end }}

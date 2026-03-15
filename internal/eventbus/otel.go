@@ -1,48 +1,52 @@
-// Package eventbus provides OTel trace context propagation over NATS headers.
+// Package eventbus provides OTel trace context propagation over message attributes.
 package eventbus
 
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
 
-// natsHeaderCarrier implements propagation.TextMapCarrier over nats.Header,
-// enabling W3C TraceContext inject/extract through NATS message headers.
-type natsHeaderCarrier struct {
-	header nats.Header
+// attributeCarrier implements propagation.TextMapCarrier over a map[string]string,
+// enabling W3C TraceContext inject/extract through Pub/Sub message attributes.
+type attributeCarrier struct {
+	attrs map[string]string
 }
 
-var _ propagation.TextMapCarrier = (*natsHeaderCarrier)(nil)
+var _ propagation.TextMapCarrier = (*attributeCarrier)(nil)
 
-func (c *natsHeaderCarrier) Get(key string) string {
-	return c.header.Get(key)
+func (c *attributeCarrier) Get(key string) string {
+	if c.attrs == nil {
+		return ""
+	}
+	return c.attrs[key]
 }
 
-func (c *natsHeaderCarrier) Set(key, value string) {
-	c.header.Set(key, value)
+func (c *attributeCarrier) Set(key, value string) {
+	if c.attrs != nil {
+		c.attrs[key] = value
+	}
 }
 
-func (c *natsHeaderCarrier) Keys() []string {
-	keys := make([]string, 0, len(c.header))
-	for k := range c.header {
+func (c *attributeCarrier) Keys() []string {
+	keys := make([]string, 0, len(c.attrs))
+	for k := range c.attrs {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
-// InjectTraceContext injects the span context from ctx into NATS message headers.
-func InjectTraceContext(ctx context.Context, header nats.Header) {
-	otel.GetTextMapPropagator().Inject(ctx, &natsHeaderCarrier{header: header})
+// InjectTraceContext injects the span context from ctx into message attributes.
+func InjectTraceContext(ctx context.Context, attrs map[string]string) {
+	otel.GetTextMapPropagator().Inject(ctx, &attributeCarrier{attrs: attrs})
 }
 
-// ExtractTraceContext extracts trace context from NATS message headers into a new context.
-// Returns the original context if no traceparent header is present.
-func ExtractTraceContext(ctx context.Context, header nats.Header) context.Context {
-	if header == nil {
+// ExtractTraceContext extracts trace context from message attributes into a new context.
+// Returns the original context if attrs is nil.
+func ExtractTraceContext(ctx context.Context, attrs map[string]string) context.Context {
+	if attrs == nil {
 		return ctx
 	}
-	return otel.GetTextMapPropagator().Extract(ctx, &natsHeaderCarrier{header: header})
+	return otel.GetTextMapPropagator().Extract(ctx, &attributeCarrier{attrs: attrs})
 }

@@ -1,0 +1,166 @@
+# PrometheusRule / GMP Rules for Sympozium alerting.
+#
+# Works with both:
+#   - Google Managed Prometheus (GMP) on GKE via Rules CRD
+#   - Standard Prometheus Operator via PrometheusRule CRD
+#
+# GMP: Apply with kubectl apply -f config/observability/prometheus-rules.yaml
+# Prometheus Operator: Import as a PrometheusRule resource.
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: Rules
+metadata:
+  name: sympozium-alerts
+  namespace: sympozium-system
+  labels:
+    app.kubernetes.io/name: sympozium
+    app.kubernetes.io/part-of: sympozium
+spec:
+  groups:
+    - name: sympozium.agent
+      interval: 60s
+      rules:
+        # --- Agent Run Failures ---
+        - alert: SympoziumAgentRunFailureRateHigh
+          expr: |
+            (
+              sum(rate(sympozium_agent_runs_total{status="failed"}[5m])) by (instance_name)
+              /
+              sum(rate(sympozium_agent_runs_total[5m])) by (instance_name)
+            ) > 0.25
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Agent run failure rate > 25% for instance {{ $labels.instance_name }}"
+            description: |
+              More than 25% of agent runs are failing for instance {{ $labels.instance_name }}.
+              Current failure rate: {{ $value | humanizePercentage }}.
+
+        - alert: SympoziumAgentRunFailureRateCritical
+          expr: |
+            (
+              sum(rate(sympozium_agent_runs_total{status="failed"}[5m])) by (instance_name)
+              /
+              sum(rate(sympozium_agent_runs_total[5m])) by (instance_name)
+            ) > 0.50
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Agent run failure rate > 50% for instance {{ $labels.instance_name }}"
+            description: |
+              More than half of agent runs are failing for instance {{ $labels.instance_name }}.
+              Investigate Vertex AI connectivity, quota, and agent logs immediately.
+
+        # --- Agent Run Duration (Latency) ---
+        - alert: SympoziumAgentRunLatencyHigh
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(sympozium_agent_run_duration_bucket[5m])) by (le, model)
+            ) > 120000
+          for: 10m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "P95 agent run duration > 2 minutes for model {{ $labels.model }}"
+            description: |
+              The 95th percentile agent run duration for model {{ $labels.model }} exceeds
+              2 minutes. This may indicate Vertex AI throttling or complex prompts.
+
+        # --- Token Usage Budget ---
+        - alert: SympoziumTokenUsageHigh
+          expr: |
+            sum(increase(gen_ai_usage_output_tokens_total[1h])) by (model) > 500000
+          for: 0m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Output token usage > 500K/hr for model {{ $labels.model }}"
+            description: |
+              Model {{ $labels.model }} has generated over 500,000 output tokens in the
+              last hour. Review agent prompts and usage patterns to control costs.
+
+        - alert: SympoziumTokenBudgetCritical
+          expr: |
+            sum(increase(gen_ai_usage_output_tokens_total[1h])) by (model) > 2000000
+          for: 0m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Output token usage > 2M/hr for model {{ $labels.model }}"
+            description: |
+              Model {{ $labels.model }} has generated over 2,000,000 output tokens in the
+              last hour. This represents significant Vertex AI spend. Consider rate limiting
+              or switching to a cheaper tier (e.g., fast/gemini-2.5-flash).
+
+        # --- No Agent Runs (Liveness) ---
+        - alert: SympoziumNoAgentRuns
+          expr: |
+            sum(rate(sympozium_agent_runs_total[15m])) == 0
+            and
+            sum(sympozium_gateway_ready) > 0
+          for: 30m
+          labels:
+            severity: info
+            team: platform
+          annotations:
+            summary: "No agent runs in the last 30 minutes"
+            description: |
+              The Sympozium gateway is healthy but no agent runs have been recorded.
+              This may be normal during low-traffic periods.
+
+    - name: sympozium.tools
+      interval: 60s
+      rules:
+        # --- Tool Invocation Errors ---
+        - alert: SympoziumToolErrorRateHigh
+          expr: |
+            (
+              sum(rate(sympozium_tool_invocations_total{status="error"}[5m])) by (tool)
+              /
+              sum(rate(sympozium_tool_invocations_total[5m])) by (tool)
+            ) > 0.30
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Tool {{ $labels.tool }} error rate > 30%"
+            description: |
+              Tool {{ $labels.tool }} is failing more than 30% of invocations.
+              Check tool sidecar logs and RBAC permissions.
+
+    - name: sympozium.infrastructure
+      interval: 60s
+      rules:
+        # --- OTel Collector Health ---
+        - alert: SympoziumCollectorDown
+          expr: up{job="sympozium-otel-collector"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Sympozium OTel Collector is down"
+            description: |
+              The OpenTelemetry Collector for Sympozium is not responding.
+              Metrics and traces are not being exported.
+
+        # --- Gateway Not Ready ---
+        - alert: SympoziumGatewayNotReady
+          expr: sympozium_gateway_ready == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Sympozium web endpoint gateway is not ready"
+            description: |
+              The Sympozium web endpoint gateway is reporting not-ready status.
+              OpenAI-compatible API requests will fail.
