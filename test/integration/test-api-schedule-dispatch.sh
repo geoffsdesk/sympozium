@@ -157,8 +157,8 @@ main() {
 
   info "Running schedule-dispatch API test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -167,7 +167,7 @@ main() {
 
   # Provide apiKey so the apiserver creates/auth-wires a provider secret; this
   # lets us assert schedule->run inheritance of provider/auth metadata.
-  api_request POST "/api/v1/instances" "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\"}" >/dev/null
+  api_request POST "/api/v1/instances" "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\"}" >/dev/null
   pass "Created ad-hoc instance '${INSTANCE_NAME}'"
 
   api_request POST "/api/v1/schedules" "{\"name\":\"${SCHEDULE_NAME}\",\"instanceRef\":\"${INSTANCE_NAME}\",\"schedule\":\"* * * * *\",\"task\":\"dispatch smoke\",\"type\":\"scheduled\"}" >/dev/null
@@ -225,7 +225,7 @@ main() {
     fail "Run missing/incorrect instance label: got '${run_instance_label}', want '${INSTANCE_NAME}'"
     exit 1
   fi
-  if [[ "$run_model_provider" != "openai" ]]; then
+  if [[ "$run_model_provider" != "vertexai" ]]; then
     fail "Run model provider not inherited from instance auth config (got '${run_model_provider}')"
     exit 1
   fi

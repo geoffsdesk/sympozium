@@ -35,7 +35,7 @@ INSTANCE_NAME="inttest-telegram"
 RUN_NAME="inttest-telegram-msg"
 SECRET_NAME="inttest-openai-key"
 TELEGRAM_SECRET_NAME="inttest-telegram-secret"
-MODEL="${TEST_MODEL:-gpt-4o-mini}"
+MODEL="${TEST_MODEL:-gemini-2.5-flash}"
 TIMEOUT="${TEST_TIMEOUT:-120}"
 
 RED='\033[0;31m'
@@ -94,12 +94,12 @@ if $FULL_MODE; then
 
     # OpenAI secret (for AgentRun)
     if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-        if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            fail "No OPENAI_API_KEY set and secret '$SECRET_NAME' not found."
+        if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+            fail "No GOOGLE_API_KEY set and secret '$SECRET_NAME' not found."
             exit 1
         fi
         kubectl create secret generic "$SECRET_NAME" \
-            --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
+            --from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY" \
             -n "$NAMESPACE"
     fi
 fi

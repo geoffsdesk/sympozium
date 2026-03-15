@@ -202,6 +202,34 @@ gcloud builds submit --config=cloudbuild.yaml
 
 **Files:** `cloudbuild.yaml`
 
+### Hybrid Inference (from upstream)
+
+Merged from upstream: a `node-probe` DaemonSet discovers local inference providers running on GKE GPU and TPU nodes and exposes them alongside Vertex AI. This enables **hybrid inference** — route simple tasks to cost-effective self-hosted models on TPU nodes or vLLM on GPU nodes, and complex tasks to Vertex AI Gemini (smarter).
+
+The node-probe scans for:
+
+| Engine | Default Port | Accelerator | Use Case |
+|--------|-------------|-------------|----------|
+| **vLLM** | 8000 | GPU (L4, A100, H100) | Primary self-hosted inference |
+| **vLLM on TPU** | 8000 | TPU v5e | Cost-effective Gemma inference |
+| **TGI** | 8080 | GPU | Alternative serving engine |
+| **Ollama** | 11434 | GPU/CPU | Development workloads |
+
+Self-hosted models (Gemma 3):
+
+| Model | Parameters | Min Accelerator | Use Case |
+|-------|-----------|-----------------|----------|
+| `gemma-3-27b-it` | 27B | A100/H100 or TPU v5e | Most capable local model |
+| `gemma-3-12b-it` | 12B | L4 or TPU v5e | Balanced local model |
+| `gemma-3-4b-it` | 4B | T4 or TPU v5e | Lightweight tasks |
+| `gemma-3-1b-it` | 1B | Any GPU/TPU | Monitoring, health checks |
+
+The node-probe automatically detects the accelerator type (GPU model or TPU) via GKE node labels and annotates nodes with `sympozium.ai/inference-accelerator` for intelligent workload placement.
+
+Discovered models appear in the onboarding wizard under "Self-Hosted (GKE GPU/TPU Node)" alongside the "Vertex AI (Gemini)" cloud option.
+
+**Files:** `cmd/node-probe/`, `config/node-probe/`, `charts/sympozium/templates/node-probe-daemonset.yaml`
+
 ---
 
 ## Quick Start on GKE

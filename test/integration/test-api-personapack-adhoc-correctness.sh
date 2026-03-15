@@ -24,7 +24,7 @@ ADHOC_INSTANCE_NAME="inttest-adhoc-$(date +%s)"
 ADHOC_EXPECTED_SECRET="${ADHOC_INSTANCE_NAME}-openai-key"
 ADHOC_RUN_NAME=""
 
-MODEL_NAME="gpt-4o-mini"
+MODEL_NAME="gemini-2.5-flash"
 EXPECTED_SKILLS_CSV="code-review,k8s-ops"
 
 RED='\033[0;31m'
@@ -242,8 +242,8 @@ main() {
 
   info "Running PersonaPack/ad-hoc correctness API test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -279,12 +279,12 @@ EOF
 
   # Pre-create auth secret and patch PersonaPack to use it explicitly.
   kubectl create secret generic "$PACK_EXPECTED_SECRET" \
-    --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+    --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
     -n "$NAMESPACE" \
     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
   # (1) Enable PersonaPack with auth/model propagation.
-  api_request PATCH "/api/v1/personapacks/${PACK_NAME}" "{\"enabled\":true,\"provider\":\"openai\",\"secretName\":\"${PACK_EXPECTED_SECRET}\",\"model\":\"${MODEL_NAME}\"}" >/dev/null
+  api_request PATCH "/api/v1/personapacks/${PACK_NAME}" "{\"enabled\":true,\"provider\":\"vertexai\",\"secretName\":\"${PACK_EXPECTED_SECRET}\",\"model\":\"${MODEL_NAME}\"}" >/dev/null
 
   elapsed=0
   while [[ "$elapsed" -lt "$TIMEOUT" ]]; do
@@ -300,24 +300,24 @@ EOF
   fi
 
   pack_inst_json="$(api_request GET "/api/v1/instances/${PACK_INSTANCE_NAME}")"
-  assert_instance_fields "$pack_inst_json" "$PACK_EXPECTED_SECRET" "$MODEL_NAME" "openai" "$EXPECTED_SKILLS_CSV" "PersonaPack instance"
+  assert_instance_fields "$pack_inst_json" "$PACK_EXPECTED_SECRET" "$MODEL_NAME" "vertexai" "$EXPECTED_SKILLS_CSV" "PersonaPack instance"
   pass "PersonaPack instance propagated auth/provider/model/skills"
 
   pack_run_json="$(api_request POST "/api/v1/runs" "{\"instanceRef\":\"${PACK_INSTANCE_NAME}\",\"task\":\"pack run correctness\"}")"
   PACK_RUN_NAME="$(printf "%s" "$pack_run_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("metadata",{}).get("name",""))')"
-  assert_run_fields "$pack_run_json" "$PACK_EXPECTED_SECRET" "$MODEL_NAME" "openai" "$EXPECTED_SKILLS_CSV" "PersonaPack run"
+  assert_run_fields "$pack_run_json" "$PACK_EXPECTED_SECRET" "$MODEL_NAME" "vertexai" "$EXPECTED_SKILLS_CSV" "PersonaPack run"
   pass "PersonaPack run inherited provider/model/auth/skills"
 
   # (2) Ad-hoc instance parity.
-  api_request POST "/api/v1/instances" "{\"name\":\"${ADHOC_INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"${MODEL_NAME}\",\"apiKey\":\"${OPENAI_API_KEY}\",\"skills\":[{\"skillPackRef\":\"code-review\"},{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
+  api_request POST "/api/v1/instances" "{\"name\":\"${ADHOC_INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"${MODEL_NAME}\",\"apiKey\":\"${GOOGLE_API_KEY}\",\"skills\":[{\"skillPackRef\":\"code-review\"},{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
 
   adhoc_inst_json="$(api_request GET "/api/v1/instances/${ADHOC_INSTANCE_NAME}")"
-  assert_instance_fields "$adhoc_inst_json" "$ADHOC_EXPECTED_SECRET" "$MODEL_NAME" "openai" "$EXPECTED_SKILLS_CSV" "Ad-hoc instance"
+  assert_instance_fields "$adhoc_inst_json" "$ADHOC_EXPECTED_SECRET" "$MODEL_NAME" "vertexai" "$EXPECTED_SKILLS_CSV" "Ad-hoc instance"
   pass "Ad-hoc instance has correct auth/provider/model/skills"
 
   adhoc_run_json="$(api_request POST "/api/v1/runs" "{\"instanceRef\":\"${ADHOC_INSTANCE_NAME}\",\"task\":\"adhoc run correctness\"}")"
   ADHOC_RUN_NAME="$(printf "%s" "$adhoc_run_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("metadata",{}).get("name",""))')"
-  assert_run_fields "$adhoc_run_json" "$ADHOC_EXPECTED_SECRET" "$MODEL_NAME" "openai" "$EXPECTED_SKILLS_CSV" "Ad-hoc run"
+  assert_run_fields "$adhoc_run_json" "$ADHOC_EXPECTED_SECRET" "$MODEL_NAME" "vertexai" "$EXPECTED_SKILLS_CSV" "Ad-hoc run"
   pass "Ad-hoc run inherited provider/model/auth/skills"
 
   # (3) Deactivation cleanup removes stamped instances.

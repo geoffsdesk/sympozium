@@ -500,19 +500,19 @@ func runOnboard() error {
 	var providerName, secretEnvKey, modelName, baseURL string
 	switch providerChoice {
 	case "2":
-		providerName = "anthropic"
-		secretEnvKey = "ANTHROPIC_API_KEY"
-		modelName = prompt(reader, "  Model name", "claude-sonnet-4-20250514")
+		providerName = "vertexai"
+		secretEnvKey = "GOOGLE_API_KEY"
+		modelName = prompt(reader, "  Model name", "gemini-2.5-pro")
 	case "3":
-		providerName = "azure-openai"
-		secretEnvKey = "AZURE_OPENAI_API_KEY"
-		baseURL = prompt(reader, "  Azure OpenAI endpoint URL", "")
-		modelName = prompt(reader, "  Deployment name", "gpt-4o")
+		providerName = "vertexai"
+		secretEnvKey = "GOOGLE_API_KEY"
+		baseURL = prompt(reader, "  Vertex AI endpoint URL", "")
+		modelName = prompt(reader, "  Model name", "gemini-2.5-pro")
 	case "4":
 		providerName = "ollama"
 		secretEnvKey = ""
 		baseURL = prompt(reader, "  Ollama URL", "http://ollama.default.svc:11434/v1")
-		modelName = prompt(reader, "  Model name", "llama3")
+		modelName = prompt(reader, "  Model name", "gemma-3-27b-it")
 		fmt.Println("  💡 No API key needed for Ollama.")
 	case "5":
 		providerName = prompt(reader, "  Provider name", "custom")
@@ -520,9 +520,9 @@ func runOnboard() error {
 		baseURL = prompt(reader, "  API base URL", "")
 		modelName = prompt(reader, "  Model name", "")
 	default:
-		providerName = "openai"
-		secretEnvKey = "OPENAI_API_KEY"
-		modelName = prompt(reader, "  Model name", "gpt-4o")
+		providerName = "vertexai"
+		secretEnvKey = "GOOGLE_API_KEY"
+		modelName = prompt(reader, "  Model name", "gemini-2.5-pro")
 	}
 
 	var apiKey string
@@ -1684,41 +1684,24 @@ var channelTypeSuggestions = []suggestion{
 }
 
 var providerSuggestions = []suggestion{
-	{"openai", "OpenAI (GPT-4o, etc.)"},
-	{"anthropic", "Anthropic (Claude)"},
-	{"azure-openai", "Azure OpenAI Service"},
-	{"ollama", "Ollama (local)"},
+	{"vertexai", "Google Vertex AI (Gemini)"},
+	{"ollama", "Ollama (local Gemma)"},
 	{"openai-compatible", "OpenAI-compatible endpoint"},
 }
 
 var modelSuggestions = map[string][]suggestion{
-	"openai": {
-		{"gpt-4o", "Best overall, 128k ctx"},
-		{"gpt-4o-mini", "Fast & cheap, 128k ctx"},
-		{"gpt-4.1", "Latest GPT-4.1, 1M ctx"},
-		{"gpt-4.1-mini", "Fast GPT-4.1, 1M ctx"},
-		{"gpt-4.1-nano", "Cheapest GPT-4.1, 1M ctx"},
-		{"o3", "Reasoning, 200k ctx"},
-		{"o3-mini", "Fast reasoning, 200k ctx"},
-		{"o4-mini", "Latest reasoning, 200k ctx"},
-	},
-	"anthropic": {
-		{"claude-sonnet-4-20250514", "Best balanced, 200k ctx"},
-		{"claude-opus-4-20250514", "Most capable, 200k ctx"},
-		{"claude-haiku-3-5-20241022", "Fast & cheap, 200k ctx"},
-	},
-	"azure-openai": {
-		{"gpt-4o", "GPT-4o deployment"},
-		{"gpt-4o-mini", "GPT-4o-mini deployment"},
-		{"gpt-4.1", "GPT-4.1 deployment"},
-		{"o3-mini", "o3-mini deployment"},
-	},
-	"google": {
-		{"gemini-2.5-pro", "Most capable, 1M ctx"},
+	"vertexai": {
+		{"gemini-2.5-pro", "Most capable (default), 1M ctx"},
 		{"gemini-2.5-flash", "Fast & efficient, 1M ctx"},
+		{"gemini-3.1-pro-preview", "Newest & most advanced, 1M ctx"},
 		{"gemini-2.0-flash", "Previous gen fast, 1M ctx"},
+		{"gemini-1.5-pro", "Previous gen pro, 1M ctx"},
 	},
 	"ollama": {
+		{"gemma-3-27b-it", "Most capable Gemma, single GPU"},
+		{"gemma-3-12b-it", "Balanced Gemma, L4 GPU"},
+		{"gemma-3-4b-it", "Lightweight Gemma, T4 GPU"},
+		{"gemma-3-1b-it", "Ultra-light Gemma, any GPU"},
 		{"llama3", "Meta Llama 3 8B"},
 		{"llama3.3", "Meta Llama 3.3 70B"},
 		{"qwen3", "Alibaba Qwen3"},
@@ -1726,7 +1709,6 @@ var modelSuggestions = map[string][]suggestion{
 		{"mistral", "Mistral 7B"},
 		{"codellama", "Code Llama 7B"},
 		{"phi4", "Microsoft Phi-4"},
-		{"gemma3", "Google Gemma 3"},
 	},
 }
 
@@ -1741,18 +1723,8 @@ func fetchProviderModels(provider, apiKey, baseURL string) ([]string, error) {
 	endpoint := ""
 	authHeader := "Bearer " + apiKey
 	switch provider {
-	case "openai":
-		endpoint = "https://api.openai.com/v1/models"
-	case "azure-openai":
-		if baseURL == "" {
-			return nil, fmt.Errorf("no base URL for azure-openai")
-		}
-		// Azure: GET {endpoint}/openai/models?api-version=2024-06-01
-		endpoint = strings.TrimRight(baseURL, "/") + "/openai/models?api-version=2024-06-01"
-		authHeader = "" // Azure uses api-key header
-	case "anthropic":
-		endpoint = "https://api.anthropic.com/v1/models"
-		authHeader = "" // Anthropic uses x-api-key
+	case "vertexai":
+		endpoint = "https://vertexai.googleapis.com/v1/projects/-/locations/us-central1/models"
 	default:
 		if baseURL != "" {
 			endpoint = strings.TrimRight(baseURL, "/") + "/v1/models"
@@ -1771,13 +1743,6 @@ func fetchProviderModels(provider, apiKey, baseURL string) ([]string, error) {
 	if authHeader != "" {
 		req.Header.Set("Authorization", authHeader)
 	}
-	if provider == "azure-openai" {
-		req.Header.Set("api-key", apiKey)
-	}
-	if provider == "anthropic" {
-		req.Header.Set("x-api-key", apiKey)
-		req.Header.Set("anthropic-version", "2023-06-01")
-	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -1794,7 +1759,7 @@ func fetchProviderModels(provider, apiKey, baseURL string) ([]string, error) {
 		return nil, err
 	}
 
-	// OpenAI/Anthropic response: {"data": [{"id": "gpt-4o", ...}, ...]}
+	// API response format: {"data": [{"id": "gemini-2.5-pro", ...}, ...]}
 	var parsed struct {
 		Data []struct {
 			ID string `json:"id"`
@@ -7354,7 +7319,7 @@ func tuiCreateRun(ns, instance, task string) (string, error) {
 
 	// Resolve auth secret and provider from instance — first AuthRef wins.
 	authSecret := ""
-	provider := "openai"
+	provider := "vertexai"
 	if len(inst.Spec.AuthRefs) > 0 {
 		authSecret = inst.Spec.AuthRefs[0].Secret
 		if inst.Spec.AuthRefs[0].Provider != "" {
@@ -8016,17 +7981,17 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 		w.providerChoice = val
 		switch val {
 		case "2":
-			w.providerName = "anthropic"
-			w.secretEnvKey = "ANTHROPIC_API_KEY"
+			w.providerName = "vertexai"
+			w.secretEnvKey = "VERTEXAI_API_KEY"
 			// Collect API key before model so we can fetch models.
 			w.step = wizStepAPIKey
 			m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
 			return m, nil
 		case "3":
-			w.providerName = "azure-openai"
-			w.secretEnvKey = "AZURE_OPENAI_API_KEY"
-			w.step = wizStepBaseURL
-			m.input.Placeholder = "Azure OpenAI endpoint URL"
+			w.providerName = "vertexai"
+			w.secretEnvKey = "VERTEXAI_API_KEY"
+			w.step = wizStepAPIKey
+			m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
 			return m, nil
 		case "4":
 			w.providerName = "ollama"
@@ -8041,8 +8006,8 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 			m.input.Placeholder = "API base URL (empty for default)"
 			return m, nil
 		default:
-			w.providerName = "openai"
-			w.secretEnvKey = "OPENAI_API_KEY"
+			w.providerName = "vertexai"
+			w.secretEnvKey = "VERTEXAI_API_KEY"
 			// Collect API key before model so we can fetch models.
 			w.step = wizStepAPIKey
 			m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
@@ -8057,10 +8022,10 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 		if w.secretEnvKey == "" {
 			// Ollama — no API key, go straight to model.
 			w.step = wizStepModel
-			m.input.Placeholder = "Model name (default: llama3)"
+			m.input.Placeholder = "Model name (default: gemma-3-27b-it)"
 			return m, nil
 		}
-		// Providers that need a key after base URL (azure, custom).
+		// Providers that need a key after base URL (custom).
 		w.step = wizStepAPIKey
 		m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
 		return m, nil
@@ -8092,12 +8057,12 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 			m.input.Placeholder = "Choose a model [number] or type a name"
 		} else {
 			switch w.providerName {
-			case "anthropic":
-				m.input.Placeholder = "Model name (default: claude-sonnet-4-20250514)"
-			case "azure-openai":
-				m.input.Placeholder = "Deployment name (default: gpt-4o)"
+			case "vertexai":
+				m.input.Placeholder = "Model name (default: gemini-2.5-pro)"
+			case "ollama":
+				m.input.Placeholder = "Model name (default: gemma-3-27b-it)"
 			default:
-				m.input.Placeholder = "Model name (default: gpt-4o)"
+				m.input.Placeholder = "Model name (default: gemini-2.5-pro)"
 			}
 		}
 		return m, nil
@@ -8105,12 +8070,12 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 	case wizStepModel:
 		if val == "" {
 			switch w.providerName {
-			case "anthropic":
-				val = "claude-sonnet-4-20250514"
+			case "vertexai":
+				val = "gemini-2.5-pro"
 			case "ollama":
-				val = "llama3"
+				val = "gemma-3-27b-it"
 			default:
-				val = "gpt-4o"
+				val = "gemini-2.5-pro"
 			}
 		} else if len(w.fetchedModels) > 0 {
 			// If the user entered a number, resolve it from the fetched list.
@@ -8287,32 +8252,20 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 		w.providerChoice = val
 		switch val {
 		case "2":
-			w.providerName = "anthropic"
-			w.secretEnvKey = "ANTHROPIC_API_KEY"
-			w.step = wizStepPersonaAPIKey
-			m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
-			return m, nil
-		case "3":
-			w.providerName = "azure-openai"
-			w.secretEnvKey = "AZURE_OPENAI_API_KEY"
-			w.step = wizStepPersonaBaseURL
-			m.input.Placeholder = "Azure OpenAI endpoint URL"
-			return m, nil
-		case "4":
 			w.providerName = "ollama"
 			w.secretEnvKey = ""
 			w.step = wizStepPersonaBaseURL
 			m.input.Placeholder = "Ollama URL (default: http://ollama.default.svc:11434/v1)"
 			return m, nil
-		case "5":
+		case "3":
 			w.providerName = "custom"
 			w.secretEnvKey = "API_KEY"
 			w.step = wizStepPersonaBaseURL
 			m.input.Placeholder = "API base URL"
 			return m, nil
 		default:
-			w.providerName = "openai"
-			w.secretEnvKey = "OPENAI_API_KEY"
+			w.providerName = "vertexai"
+			w.secretEnvKey = "GOOGLE_API_KEY"
 			w.step = wizStepPersonaAPIKey
 			m.input.Placeholder = fmt.Sprintf("%s (paste key, Enter to skip)", w.secretEnvKey)
 			return m, nil
@@ -8326,7 +8279,7 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 		if w.secretEnvKey == "" {
 			// Ollama — no key needed, skip to model.
 			w.step = wizStepPersonaModel
-			m.input.Placeholder = "Model name (default: llama3)"
+			m.input.Placeholder = "Model name (default: gemma-3-27b-it)"
 			return m, nil
 		}
 		w.step = wizStepPersonaAPIKey
@@ -8359,12 +8312,12 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 			m.input.Placeholder = "Choose a model [number] or type a name"
 		} else {
 			switch w.providerName {
-			case "anthropic":
-				m.input.Placeholder = "Model name (default: claude-sonnet-4-20250514)"
-			case "azure-openai":
-				m.input.Placeholder = "Deployment name (default: gpt-4o)"
+			case "vertexai":
+				m.input.Placeholder = "Model name (default: gemini-2.5-pro)"
+			case "ollama":
+				m.input.Placeholder = "Model name (default: gemma-3-27b-it)"
 			default:
-				m.input.Placeholder = "Model name (default: gpt-4o)"
+				m.input.Placeholder = "Model name (default: gemini-2.5-pro)"
 			}
 		}
 		return m, nil
@@ -8372,12 +8325,12 @@ func (m tuiModel) advanceWizard(val string) (tea.Model, tea.Cmd) {
 	case wizStepPersonaModel:
 		if val == "" {
 			switch w.providerName {
-			case "anthropic":
-				val = "claude-sonnet-4-20250514"
+			case "vertexai":
+				val = "gemini-2.5-pro"
 			case "ollama":
-				val = "llama3"
+				val = "gemma-3-27b-it"
 			default:
-				val = "gpt-4o"
+				val = "gemini-2.5-pro"
 			}
 		} else if len(w.fetchedModels) > 0 {
 			if idx, err := strconv.Atoi(val); err == nil && idx >= 1 && idx <= len(w.fetchedModels) {
@@ -8973,11 +8926,9 @@ func (m tuiModel) renderPersonaWizardPanel(h int,
 	case wizStepPersonaProvider:
 		lines = append(lines, stepStyle.Render("  Step 2: Select AI Provider"))
 		lines = append(lines, "")
-		lines = append(lines, menuNumStyle.Render("  [1]")+menuStyle.Render(" OpenAI")+hintStyle.Render(" — GPT-4o, o1, etc."))
-		lines = append(lines, menuNumStyle.Render("  [2]")+menuStyle.Render(" Anthropic")+hintStyle.Render(" — Claude Sonnet/Opus"))
-		lines = append(lines, menuNumStyle.Render("  [3]")+menuStyle.Render(" Azure OpenAI")+hintStyle.Render(" — Enterprise Azure"))
-		lines = append(lines, menuNumStyle.Render("  [4]")+menuStyle.Render(" Ollama")+hintStyle.Render(" — Local models"))
-		lines = append(lines, menuNumStyle.Render("  [5]")+menuStyle.Render(" Custom")+hintStyle.Render(" — Any OpenAI-compatible API"))
+		lines = append(lines, menuNumStyle.Render("  [1]")+menuStyle.Render(" Vertex AI")+hintStyle.Render(" — Gemini (default)"))
+		lines = append(lines, menuNumStyle.Render("  [2]")+menuStyle.Render(" Ollama")+hintStyle.Render(" — Local Gemma models"))
+		lines = append(lines, menuNumStyle.Render("  [3]")+menuStyle.Render(" Custom")+hintStyle.Render(" — Any OpenAI-compatible API"))
 		lines = append(lines, "")
 
 	case wizStepPersonaBaseURL:

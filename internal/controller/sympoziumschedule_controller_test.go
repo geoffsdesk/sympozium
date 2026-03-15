@@ -46,11 +46,11 @@ func TestSympoziumScheduleReconcile_CopiesProviderAndAuthSecretToRun(t *testing.
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "claude-3-5-sonnet",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "anthropic", Secret: "inst-a-anthropic-key"},
+				{Provider: "vertexai", Secret: "inst-a-vertexai-key"},
 			},
 		},
 	}
@@ -87,19 +87,19 @@ func TestSympoziumScheduleReconcile_CopiesProviderAndAuthSecretToRun(t *testing.
 		t.Fatalf("expected scheduled run to have no owner references, got %d", len(run.OwnerReferences))
 	}
 
-	if run.Spec.Model.Provider != "anthropic" {
-		t.Fatalf("provider = %q, want anthropic", run.Spec.Model.Provider)
+	if run.Spec.Model.Provider != "vertexai" {
+		t.Fatalf("provider = %q, want vertexai", run.Spec.Model.Provider)
 	}
-	if run.Spec.Model.AuthSecretRef != "inst-a-anthropic-key" {
-		t.Fatalf("authSecretRef = %q, want inst-a-anthropic-key", run.Spec.Model.AuthSecretRef)
+	if run.Spec.Model.AuthSecretRef != "inst-a-vertexai-key" {
+		t.Fatalf("authSecretRef = %q, want inst-a-vertexai-key", run.Spec.Model.AuthSecretRef)
 	}
 
 	agentContainers := (&AgentRunReconciler{}).buildContainers(run, false, nil, nil)
 	if len(agentContainers) == 0 || len(agentContainers[0].EnvFrom) == 0 || agentContainers[0].EnvFrom[0].SecretRef == nil {
 		t.Fatalf("expected scheduled run auth secret to be mounted via envFrom")
 	}
-	if got := agentContainers[0].EnvFrom[0].SecretRef.Name; got != "inst-a-anthropic-key" {
-		t.Fatalf("mounted secret = %q, want inst-a-anthropic-key", got)
+	if got := agentContainers[0].EnvFrom[0].SecretRef.Name; got != "inst-a-vertexai-key" {
+		t.Fatalf("mounted secret = %q, want inst-a-vertexai-key", got)
 	}
 }
 
@@ -113,11 +113,11 @@ func TestSympoziumScheduleReconcile_FiltersWebEndpointSkill(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "gpt-4o",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "openai", Secret: "inst-web-openai-key"},
+				{Provider: "vertexai", Secret: "inst-web-vertexai-key"},
 			},
 			Skills: []sympoziumv1alpha1.SkillRef{
 				{SkillPackRef: "k8s-ops"},
@@ -188,11 +188,11 @@ func TestSympoziumScheduleReconcile_SkipsWhenServingRunExists(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "gpt-4o",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "openai", Secret: "inst-serving-openai-key"},
+				{Provider: "vertexai", Secret: "inst-serving-vertexai-key"},
 			},
 		},
 	}
@@ -212,9 +212,9 @@ func TestSympoziumScheduleReconcile_SkipsWhenServingRunExists(t *testing.T) {
 			Task:        "serve",
 			Mode:        "server",
 			Model: sympoziumv1alpha1.ModelSpec{
-				Provider:      "openai",
-				Model:         "gpt-4o",
-				AuthSecretRef: "inst-serving-openai-key",
+				Provider:      "vertexai",
+				Model:         "gemini-2.5-pro",
+				AuthSecretRef: "inst-serving-vertexai-key",
 			},
 		},
 		Status: sympoziumv1alpha1.AgentRunStatus{
@@ -277,11 +277,11 @@ func TestSympoziumScheduleReconcile_ResolvesProviderFromSecretNameFallback(t *te
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "gpt-4.1",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Secret: "inst-b-azure-openai-key"},
+				{Secret: "inst-b-vertexai-key"},
 			},
 		},
 	}
@@ -315,10 +315,10 @@ func TestSympoziumScheduleReconcile_ResolvesProviderFromSecretNameFallback(t *te
 		t.Fatalf("get created run: %v", err)
 	}
 
-	if run.Spec.Model.Provider != "azure-openai" {
-		t.Fatalf("provider = %q, want azure-openai", run.Spec.Model.Provider)
+	if run.Spec.Model.Provider != "vertexai" {
+		t.Fatalf("provider = %q, want vertexai", run.Spec.Model.Provider)
 	}
-	if run.Spec.Model.AuthSecretRef != "inst-b-azure-openai-key" {
-		t.Fatalf("authSecretRef = %q, want inst-b-azure-openai-key", run.Spec.Model.AuthSecretRef)
+	if run.Spec.Model.AuthSecretRef != "inst-b-vertexai-key" {
+		t.Fatalf("authSecretRef = %q, want inst-b-vertexai-key", run.Spec.Model.AuthSecretRef)
 	}
 }

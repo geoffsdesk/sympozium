@@ -44,7 +44,7 @@ func TestPatchPersonaPackRejectsMissingSecret(t *testing.T) {
 	}
 	srv, cl := newTestServer(t, pack)
 
-	body := `{"enabled":true,"provider":"openai","secretName":"platform-team-credentials","model":"gpt-4o"}`
+	body := `{"enabled":true,"provider":"vertexai","secretName":"platform-team-credentials","model":"gemini-2.5-pro"}`
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/personapacks/platform-team?namespace=default", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 	srv.buildMux(nil, "").ServeHTTP(rec, req)
@@ -76,9 +76,9 @@ func TestPatchPersonaPackAutoCreatesProviderSecretWithNewName(t *testing.T) {
 
 	payload := map[string]any{
 		"enabled":  true,
-		"provider": "openai",
-		"apiKey":   "sk-test",
-		"model":    "gpt-4o",
+		"provider": "vertexai",
+		"apiKey":   "test-key",
+		"model":    "gemini-2.5-pro",
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -99,12 +99,12 @@ func TestPatchPersonaPackAutoCreatesProviderSecretWithNewName(t *testing.T) {
 	if len(got.Spec.AuthRefs) != 1 {
 		t.Fatalf("expected 1 authRef, got %#v", got.Spec.AuthRefs)
 	}
-	if got.Spec.AuthRefs[0].Secret != "platform-team-openai-key" {
-		t.Fatalf("expected secret name platform-team-openai-key, got %q", got.Spec.AuthRefs[0].Secret)
+	if got.Spec.AuthRefs[0].Secret != "platform-team-vertexai-key" {
+		t.Fatalf("expected secret name platform-team-vertexai-key, got %q", got.Spec.AuthRefs[0].Secret)
 	}
 
 	var secret corev1.Secret
-	if err := cl.Get(context.Background(), client.ObjectKey{Name: "platform-team-openai-key", Namespace: "default"}, &secret); err != nil {
+	if err := cl.Get(context.Background(), client.ObjectKey{Name: "platform-team-vertexai-key", Namespace: "default"}, &secret); err != nil {
 		t.Fatalf("get provider secret: %v", err)
 	}
 	key := string(secret.Data["OPENAI_API_KEY"])

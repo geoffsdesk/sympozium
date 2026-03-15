@@ -149,8 +149,8 @@ main() {
 
   info "Running heartbeat schedule test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -159,7 +159,7 @@ main() {
 
   # ── Create instance ──
   api_request POST "/api/v1/instances" \
-    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\"}" >/dev/null
+    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\"}" >/dev/null
   pass "Created instance '${INSTANCE_NAME}'"
 
   # ── 1) Create heartbeat schedule (every-minute cron for fast test) ──
@@ -239,7 +239,7 @@ main() {
     fail "Run instance label mismatch (got '${run_instance_label}')"
     exit 1
   fi
-  if [[ "$run_provider" != "openai" ]]; then
+  if [[ "$run_provider" != "vertexai" ]]; then
     fail "Run provider not inherited (got '${run_provider}')"
     exit 1
   fi

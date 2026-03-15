@@ -15,11 +15,14 @@ const (
 	// TierFast uses Gemini Flash for quick, low-cost responses.
 	TierFast Tier = "fast"
 
-	// TierBalanced uses Gemini Flash with thinking for quality + speed.
+	// TierBalanced uses Gemini Pro (default) for quality + speed.
 	TierBalanced Tier = "balanced"
 
 	// TierPowerful uses Gemini Pro for complex reasoning tasks.
 	TierPowerful Tier = "powerful"
+
+	// TierLocal uses self-hosted Gemma models for on-premises deployment.
+	TierLocal Tier = "local"
 
 	// TierCustom uses a user-specified model.
 	TierCustom Tier = "custom"
@@ -62,32 +65,32 @@ type ModelInfo struct {
 var DefaultModels = map[Tier]ModelInfo{
 	TierFast: {
 		Tier:             TierFast,
-		ModelID:          "gemini-2.0-flash",
-		DisplayName:      "Gemini 2.0 Flash",
+		ModelID:          "gemini-2.5-flash",
+		DisplayName:      "Gemini 2.5 Flash",
 		Description:      "Fast and cost-effective for routine tasks, monitoring, and simple queries.",
 		MaxInputTokens:   1048576,
 		MaxOutputTokens:  8192,
 		SupportsTools:    true,
 		SupportsThinking: false,
-		CostPer1MInput:   0.075,
-		CostPer1MOutput:  0.30,
+		CostPer1MInput:   0.15,
+		CostPer1MOutput:  0.60,
 	},
 	TierBalanced: {
 		Tier:             TierBalanced,
-		ModelID:          "gemini-2.5-flash",
-		DisplayName:      "Gemini 2.5 Flash",
-		Description:      "Balanced performance with thinking capability for moderate complexity tasks.",
+		ModelID:          "gemini-2.5-pro",
+		DisplayName:      "Gemini 2.5 Pro",
+		Description:      "Pro model as default for quality reasoning and balanced performance.",
 		MaxInputTokens:   1048576,
 		MaxOutputTokens:  65536,
 		SupportsTools:    true,
 		SupportsThinking: true,
-		CostPer1MInput:   0.15,
-		CostPer1MOutput:  0.60,
+		CostPer1MInput:   1.25,
+		CostPer1MOutput:  10.00,
 	},
 	TierPowerful: {
 		Tier:             TierPowerful,
-		ModelID:          "gemini-2.5-pro",
-		DisplayName:      "Gemini 2.5 Pro",
+		ModelID:          "gemini-3.1-pro-preview",
+		DisplayName:      "Gemini 3.1 Pro (Preview)",
 		Description:      "Most capable model for complex reasoning, code review, and incident response.",
 		MaxInputTokens:   1048576,
 		MaxOutputTokens:  65536,
@@ -98,8 +101,60 @@ var DefaultModels = map[Tier]ModelInfo{
 	},
 }
 
+// GemmaModels contains the available self-hosted Gemma models for GKE GPU/TPU nodes.
+var GemmaModels = []ModelInfo{
+	{
+		Tier:            TierLocal,
+		ModelID:         "gemma-3-27b-it",
+		DisplayName:     "Gemma 3 27B Instruct",
+		Description:     "Most capable Gemma model. Runs on a single GPU (A100/H100) or TPU v5e.",
+		MaxInputTokens:  128000,
+		MaxOutputTokens: 8192,
+		SupportsTools:   true,
+		SupportsThinking: false,
+		CostPer1MInput:  0.0,
+		CostPer1MOutput: 0.0,
+	},
+	{
+		Tier:            TierLocal,
+		ModelID:         "gemma-3-12b-it",
+		DisplayName:     "Gemma 3 12B Instruct",
+		Description:     "Balanced Gemma model. Runs on L4 GPU or TPU v5e.",
+		MaxInputTokens:  128000,
+		MaxOutputTokens: 8192,
+		SupportsTools:   true,
+		SupportsThinking: false,
+		CostPer1MInput:  0.0,
+		CostPer1MOutput: 0.0,
+	},
+	{
+		Tier:            TierLocal,
+		ModelID:         "gemma-3-4b-it",
+		DisplayName:     "Gemma 3 4B Instruct",
+		Description:     "Lightweight Gemma model. Runs on T4 GPU or TPU v5e.",
+		MaxInputTokens:  128000,
+		MaxOutputTokens: 8192,
+		SupportsTools:   false,
+		SupportsThinking: false,
+		CostPer1MInput:  0.0,
+		CostPer1MOutput: 0.0,
+	},
+	{
+		Tier:            TierLocal,
+		ModelID:         "gemma-3-1b-it",
+		DisplayName:     "Gemma 3 1B Instruct",
+		Description:     "Ultra-lightweight Gemma for edge and monitoring. Runs on any GPU or TPU.",
+		MaxInputTokens:  32000,
+		MaxOutputTokens: 4096,
+		SupportsTools:   false,
+		SupportsThinking: false,
+		CostPer1MInput:  0.0,
+		CostPer1MOutput: 0.0,
+	},
+}
+
 // ResolveTier converts a tier name or model ID to a ModelInfo.
-// It handles: "fast", "balanced", "powerful", or any direct model ID.
+// It handles: "fast", "balanced", "powerful", "local", or any direct model ID.
 func ResolveTier(tierOrModel string) ModelInfo {
 	tierOrModel = strings.ToLower(strings.TrimSpace(tierOrModel))
 
@@ -115,6 +170,13 @@ func ResolveTier(tierOrModel string) ModelInfo {
 
 	// Check if it matches a known model ID
 	for _, m := range DefaultModels {
+		if strings.EqualFold(m.ModelID, tierOrModel) {
+			return m
+		}
+	}
+
+	// Check if it matches a Gemma model ID
+	for _, m := range GemmaModels {
 		if strings.EqualFold(m.ModelID, tierOrModel) {
 			return m
 		}
@@ -159,7 +221,7 @@ func TierForPersona(personaName string) Tier {
 		}
 	}
 
-	// Default to balanced
+	// Default to balanced (Pro is the default)
 	return TierBalanced
 }
 
@@ -182,6 +244,15 @@ func FormatTierTable() string {
 			tools = "No"
 		}
 		sb.WriteString(fmt.Sprintf("%-12s %-25s %-10s %s\n", tier, m.ModelID, tools, m.Description))
+	}
+	sb.WriteString("\n" + fmt.Sprintf("%-12s %-25s %-10s %s\n", "LOCAL (GEMMA)", "", "", ""))
+	sb.WriteString(strings.Repeat("-", 80) + "\n")
+	for _, m := range GemmaModels {
+		tools := "Yes"
+		if !m.SupportsTools {
+			tools = "No"
+		}
+		sb.WriteString(fmt.Sprintf("%-12s %-25s %-10s %s\n", "local", m.ModelID, tools, m.Description))
 	}
 	return sb.String()
 }

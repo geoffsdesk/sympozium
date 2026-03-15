@@ -102,8 +102,8 @@ spec:
                     description: Model is the model identifier.
                     type: string
                   provider:
-                    description: Provider is the AI provider (openai, anthropic, azure-openai,
-                      github-copilot, ollama, etc.).
+                    description: Provider is the AI provider (vertexai, gemini, self-hosted,
+                      etc.).
                     type: string
                   thinking:
                     description: Thinking mode (off, low, medium, high).

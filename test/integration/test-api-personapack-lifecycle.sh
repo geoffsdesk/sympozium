@@ -156,8 +156,8 @@ main() {
 
   info "Running PersonaPack lifecycle test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -166,7 +166,7 @@ main() {
 
   # ── Create auth secret ──
   kubectl create secret generic "$SECRET_NAME" \
-    --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+    --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
     -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
   # ── Create PersonaPack with 3 personas, one excluded ──
@@ -187,7 +187,7 @@ spec:
     - name: ${PERSONA_A}
       displayName: "Incident Responder"
       systemPrompt: "You are an incident responder."
-      model: gpt-4o-mini
+      model: gemini-2.5-flash
       skills:
         - k8s-ops
       schedule:
@@ -219,7 +219,7 @@ EOF
 
   # ── Enable the pack ──
   api_request PATCH "/api/v1/personapacks/${PACK_NAME}" \
-    "{\"enabled\":true,\"provider\":\"openai\",\"secretName\":\"${SECRET_NAME}\",\"model\":\"gpt-4o-mini\"}" >/dev/null
+    "{\"enabled\":true,\"provider\":\"vertexai\",\"secretName\":\"${SECRET_NAME}\",\"model\":\"gemini-2.5-flash\"}" >/dev/null
   pass "Enabled PersonaPack"
 
   # ── Wait for stamped instances ──
@@ -254,8 +254,8 @@ EOF
   # ── Verify persona A model override propagated ──
   inst_a_json="$(api_request GET "/api/v1/instances/${PACK_NAME}-${PERSONA_A}")"
   inst_a_model="$(printf "%s" "$inst_a_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("spec",{}).get("agents",{}).get("default",{}).get("model",""))')"
-  if [[ "$inst_a_model" != "gpt-4o-mini" ]]; then
-    fail "Persona A model not propagated (got '${inst_a_model}', want 'gpt-4o-mini')"
+  if [[ "$inst_a_model" != "gemini-2.5-flash" ]]; then
+    fail "Persona A model not propagated (got '${inst_a_model}', want 'gemini-2.5-flash')"
     exit 1
   fi
   pass "Persona-level model override propagated to instance"

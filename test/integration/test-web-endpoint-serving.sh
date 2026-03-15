@@ -98,7 +98,7 @@ http_request() {
 setup_secret() {
   info "Creating dummy auth secret for Ollama (no real key needed)"
   kubectl create secret generic "$SECRET_NAME" \
-    --from-literal=OPENAI_API_KEY="ollama-no-key-needed" \
+    --from-literal=GOOGLE_API_KEY="ollama-no-key-needed" \
     -n "$NAMESPACE" >/dev/null 2>&1 || true
   pass "Auth secret created: $SECRET_NAME"
 }

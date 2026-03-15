@@ -190,7 +190,7 @@ func TestCallOpenAI_MockServer(t *testing.T) {
 			"id":      "chatcmpl-test",
 			"object":  "chat.completion",
 			"created": 1234567890,
-			"model":   "gpt-4o-mini",
+			"model":   "gemini-2.5-flash",
 			"choices": []map[string]any{
 				{
 					"index": 0,
@@ -213,7 +213,7 @@ func TestCallOpenAI_MockServer(t *testing.T) {
 	defer srv.Close()
 
 	ctx := t.Context()
-	text, inTok, outTok, _, err := callOpenAI(ctx, "openai", "test-key", srv.URL, "gpt-4o-mini", "You are helpful.", "Say hello", nil)
+	text, inTok, outTok, _, err := callOpenAI(ctx, "vertexai", "test-key", srv.URL, "gemini-2.5-flash", "You are helpful.", "Say hello", nil)
 	if err != nil {
 		t.Fatalf("callOpenAI error: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestCallOpenAI_ServerError(t *testing.T) {
 	defer srv.Close()
 
 	ctx := t.Context()
-	_, _, _, _, err := callOpenAI(ctx, "openai", "bad-key", srv.URL, "gpt-4", "sys", "task", nil)
+	_, _, _, _, err := callOpenAI(ctx, "vertexai", "bad-key", srv.URL, "gemini-2.5-pro", "sys", "task", nil)
 	if err == nil {
 		t.Fatal("expected error for 401 response")
 	}
@@ -270,7 +270,7 @@ func TestCallAnthropic_MockServer(t *testing.T) {
 			"id":    "msg_test",
 			"type":  "message",
 			"role":  "assistant",
-			"model": "claude-sonnet-4-20250514",
+			"model": "gemini-2.5-pro",
 			"content": []map[string]string{
 				{
 					"type": "text",
@@ -289,7 +289,7 @@ func TestCallAnthropic_MockServer(t *testing.T) {
 	defer srv.Close()
 
 	ctx := t.Context()
-	text, inTok, outTok, _, err := callAnthropic(ctx, "test-anthropic-key", srv.URL, "claude-sonnet-4-20250514", "Be helpful.", "Say hello", nil)
+	text, inTok, outTok, _, err := callAnthropic(ctx, "test-anthropic-key", srv.URL, "gemini-2.5-pro", "Be helpful.", "Say hello", nil)
 	if err != nil {
 		t.Fatalf("callAnthropic error: %v", err)
 	}
@@ -321,7 +321,7 @@ func TestCallAnthropic_ServerError(t *testing.T) {
 	defer srv.Close()
 
 	ctx := t.Context()
-	_, _, _, _, err := callAnthropic(ctx, "bad-key", srv.URL, "claude-sonnet-4-20250514", "sys", "task", nil)
+	_, _, _, _, err := callAnthropic(ctx, "bad-key", srv.URL, "gemini-2.5-pro", "sys", "task", nil)
 	if err == nil {
 		t.Fatal("expected error for 400 response")
 	}
@@ -332,7 +332,7 @@ func TestCallAnthropic_ServerError(t *testing.T) {
 
 func TestCallOpenAI_AzureRequiresBaseURL(t *testing.T) {
 	ctx := t.Context()
-	_, _, _, _, err := callOpenAI(ctx, "azure-openai", "key", "", "gpt-4", "sys", "task", nil)
+	_, _, _, _, err := callOpenAI(ctx, "vertexai", "key", "", "gemini-2.5-pro", "sys", "task", nil)
 	if err == nil {
 		t.Fatal("expected error when azure-openai has no base URL")
 	}
@@ -374,7 +374,7 @@ func TestProviderRouting(t *testing.T) {
 
 	ctx := t.Context()
 
-	callOpenAI(ctx, "openai", "k", openaiSrv.URL, "m", "s", "t", nil)
+	callOpenAI(ctx, "vertexai", "k", openaiSrv.URL, "m", "s", "t", nil)
 	if !openAICalled {
 		t.Error("expected OpenAI server to be called for openai provider")
 	}
@@ -398,7 +398,7 @@ func TestCallAnthropic_ToolUseFlow(t *testing.T) {
 		if callCount == 1 {
 			// First call: model wants to use a tool.
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": "msg_tool", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+				"id": "msg_tool", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 				"content": []map[string]any{
 					{
 						"type": "text",
@@ -427,7 +427,7 @@ func TestCallAnthropic_ToolUseFlow(t *testing.T) {
 		}
 
 		json.NewEncoder(w).Encode(map[string]any{
-			"id": "msg_final", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+			"id": "msg_final", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 			"content": []map[string]any{
 				{"type": "text", "text": "The file contains: hello world"},
 			},
@@ -459,7 +459,7 @@ func TestCallAnthropic_ToolUseFlow(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	text, inTok, outTok, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "claude-sonnet-4-20250514", "sys", "Read /tmp/testfile.txt", tools)
+	text, inTok, outTok, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "gemini-2.5-pro", "sys", "Read /tmp/testfile.txt", tools)
 	if err != nil {
 		t.Fatalf("callAnthropic tool-use error: %v", err)
 	}
@@ -491,7 +491,7 @@ func TestCallAnthropic_MultipleToolCalls(t *testing.T) {
 		if callCount == 1 {
 			// Model returns two tool_use blocks at once.
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": "msg_multi", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+				"id": "msg_multi", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 				"content": []map[string]any{
 					{"type": "tool_use", "id": "toolu_01A", "name": "read_file",
 						"input": map[string]string{"path": "/workspace/a.txt"}},
@@ -522,7 +522,7 @@ func TestCallAnthropic_MultipleToolCalls(t *testing.T) {
 		}
 
 		json.NewEncoder(w).Encode(map[string]any{
-			"id": "msg_done", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+			"id": "msg_done", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 			"content":     []map[string]any{{"type": "text", "text": "Both files read."}},
 			"stop_reason": "end_turn",
 			"usage":       map[string]int{"input_tokens": 30, "output_tokens": 5},
@@ -546,7 +546,7 @@ func TestCallAnthropic_MultipleToolCalls(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	text, _, _, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "claude-sonnet-4-20250514", "sys", "Read both", tools)
+	text, _, _, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "gemini-2.5-pro", "sys", "Read both", tools)
 	if err != nil {
 		t.Fatalf("callAnthropic multi-tool error: %v", err)
 	}
@@ -570,7 +570,7 @@ func TestCallAnthropic_ToolErrorIsError(t *testing.T) {
 
 		if callCount == 1 {
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": "msg_err", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+				"id": "msg_err", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 				"content": []map[string]any{
 					{"type": "tool_use", "id": "toolu_err", "name": "read_file",
 						"input": map[string]string{"path": "/nonexistent/file.txt"}},
@@ -583,7 +583,7 @@ func TestCallAnthropic_ToolErrorIsError(t *testing.T) {
 
 		json.NewDecoder(r.Body).Decode(&capturedBody)
 		json.NewEncoder(w).Encode(map[string]any{
-			"id": "msg_recovery", "type": "message", "role": "assistant", "model": "claude-sonnet-4-20250514",
+			"id": "msg_recovery", "type": "message", "role": "assistant", "model": "gemini-2.5-pro",
 			"content":     []map[string]any{{"type": "text", "text": "The file was not found."}},
 			"stop_reason": "end_turn",
 			"usage":       map[string]int{"input_tokens": 15, "output_tokens": 8},
@@ -607,7 +607,7 @@ func TestCallAnthropic_ToolErrorIsError(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	text, _, _, _, err := callAnthropic(ctx, "key", srv.URL, "claude-sonnet-4-20250514", "sys", "Read /nonexistent/file.txt", tools)
+	text, _, _, _, err := callAnthropic(ctx, "key", srv.URL, "gemini-2.5-pro", "sys", "Read /nonexistent/file.txt", tools)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

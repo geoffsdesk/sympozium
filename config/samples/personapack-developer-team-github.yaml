@@ -47,7 +47,7 @@ spec:
   personas:
     - name: tech-lead
       displayName: "Tech Lead"
-      model: gemini-2.0-flash
+      model: gemini-2.5-pro
       systemPrompt: |
         You are the tech lead of a software development team.
         You coordinate work by triaging issues, reviewing architecture,
@@ -67,7 +67,7 @@ spec:
 
     - name: backend-dev
       displayName: "Backend Developer"
-      model: gemini-2.0-flash
+      model: gemini-2.5-pro
       systemPrompt: |
         You are a backend software developer. You implement server-side
         features, APIs, data models, and business logic.
@@ -86,7 +86,7 @@ spec:
 
     - name: qa-engineer
       displayName: "QA Engineer"
-      model: gemini-2.0-flash
+      model: gemini-2.5-pro
       systemPrompt: |
         You are a QA engineer. You ensure software quality through
         testing, bug discovery, and coverage analysis.

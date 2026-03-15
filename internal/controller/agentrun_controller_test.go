@@ -27,8 +27,8 @@ func newTestRun() *sympoziumv1alpha1.AgentRun {
 			SessionKey:  "sess-1",
 			Task:        "do stuff",
 			Model: sympoziumv1alpha1.ModelSpec{
-				Provider:      "openai",
-				Model:         "gpt-4o",
+				Provider:      "vertexai",
+				Model:         "gemini-2.5-pro",
 				AuthSecretRef: "my-secret",
 			},
 		},
@@ -218,10 +218,10 @@ func TestBuildContainers_AgentEnvVars(t *testing.T) {
 	if envMap["TASK"] != "do stuff" {
 		t.Errorf("TASK = %q", envMap["TASK"])
 	}
-	if envMap["MODEL_PROVIDER"] != "openai" {
+	if envMap["MODEL_PROVIDER"] != "vertexai" {
 		t.Errorf("MODEL_PROVIDER = %q", envMap["MODEL_PROVIDER"])
 	}
-	if envMap["MODEL_NAME"] != "gpt-4o" {
+	if envMap["MODEL_NAME"] != "gemini-2.5-pro" {
 		t.Errorf("MODEL_NAME = %q", envMap["MODEL_NAME"])
 	}
 }

@@ -140,7 +140,7 @@ type RateLimitSpec struct {
 
 // ChannelSpec defines a channel connection.
 type ChannelSpec struct {
-	// Type is the channel type (googlechat, discord).
+	// Type is the channel type (telegram, whatsapp, discord, slack).
 	Type string `json:"type"`
 
 	// ConfigRef references the secret containing channel credentials.
@@ -160,7 +160,7 @@ type AgentConfig struct {
 	Model string `json:"model"`
 
 	// BaseURL overrides the provider's default API endpoint.
-	// Use for custom Vertex AI endpoints or self-hosted models.
+	// Use for OpenAI-compatible providers (GitHub Copilot, Azure OpenAI, Ollama, etc.).
 	// +optional
 	BaseURL string `json:"baseURL,omitempty"`
 
@@ -175,6 +175,11 @@ type AgentConfig struct {
 	// Subagents configuration.
 	// +optional
 	Subagents *SubagentsSpec `json:"subagents,omitempty"`
+
+	// NodeSelector constrains agent pods to nodes with matching labels.
+	// Used for node-pinned inference (e.g., Ollama installed on specific GPU nodes).
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // SandboxSpec defines sandbox configuration.
@@ -225,7 +230,7 @@ type SkillRef struct {
 
 // SecretRef references a Kubernetes Secret.
 type SecretRef struct {
-	// Provider is the AI provider name (e.g. "vertexai", "gemini").
+	// Provider is the AI provider name (e.g. "vertexai", "gemini", "self-hosted").
 	// +optional
 	Provider string `json:"provider,omitempty"`
 	// Secret is the name of the Secret.

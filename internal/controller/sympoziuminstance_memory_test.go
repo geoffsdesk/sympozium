@@ -89,11 +89,11 @@ func TestInstanceMemory_AdhocInstance_GrowsAcrossPrompts(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "claude-sonnet-4-20250514",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "anthropic", Secret: "CLAUDE_TOKEN"},
+				{Provider: "vertexai", Secret: "VERTEXAI_TOKEN"},
 			},
 			Memory: &sympoziumv1alpha1.MemorySpec{
 				Enabled:   true,
@@ -199,11 +199,11 @@ func TestInstanceMemory_PersonaPackInstance_GrowsAcrossPrompts(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "claude-sonnet-4-20250514",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "anthropic", Secret: "CLAUDE_TOKEN"},
+				{Provider: "vertexai", Secret: "VERTEXAI_TOKEN"},
 			},
 			Memory: &sympoziumv1alpha1.MemorySpec{
 				Enabled:      true,
@@ -280,11 +280,11 @@ func TestInstanceMemory_DisabledDoesNotCreateConfigMap(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "gpt-4o",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "openai", Secret: "CLAUDE_TOKEN"},
+				{Provider: "vertexai", Secret: "VERTEXAI_TOKEN"},
 			},
 			// Memory is nil → disabled.
 		},
@@ -321,11 +321,11 @@ func TestInstanceMemory_ReconcilePreservesExistingContent(t *testing.T) {
 		Spec: sympoziumv1alpha1.SympoziumInstanceSpec{
 			Agents: sympoziumv1alpha1.AgentsSpec{
 				Default: sympoziumv1alpha1.AgentConfig{
-					Model: "claude-sonnet-4-20250514",
+					Model: "gemini-2.5-pro",
 				},
 			},
 			AuthRefs: []sympoziumv1alpha1.SecretRef{
-				{Provider: "anthropic", Secret: "CLAUDE_TOKEN"},
+				{Provider: "vertexai", Secret: "VERTEXAI_TOKEN"},
 			},
 			Memory: &sympoziumv1alpha1.MemorySpec{
 				Enabled: true,

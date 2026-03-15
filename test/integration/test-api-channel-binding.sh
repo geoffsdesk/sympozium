@@ -176,8 +176,8 @@ main() {
 
   info "Running channel-binding test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -207,7 +207,7 @@ metadata:
 spec:
   agents:
     default:
-      model: gpt-4o-mini
+      model: gemini-2.5-flash
   authRefs:
     - provider: openai
       secret: ${ADHOC_SECRET}
@@ -219,7 +219,7 @@ EOF
 
   # Also create the auth secret for the instance
   kubectl create secret generic "$ADHOC_SECRET" \
-    --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+    --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
     -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
   pass "Created ad-hoc instance '${ADHOC_INSTANCE}' with telegram channel"
@@ -271,7 +271,7 @@ EOF
   info "--- Part 2: PersonaPack with channel config ---"
 
   kubectl create secret generic "$PACK_SECRET" \
-    --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+    --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
     -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
   cat <<EOF | kubectl apply -f - >/dev/null
@@ -302,7 +302,7 @@ EOF
 
   # ── Enable the pack ──
   api_request PATCH "/api/v1/personapacks/${PACK_NAME}" \
-    "{\"enabled\":true,\"provider\":\"openai\",\"secretName\":\"${PACK_SECRET}\",\"model\":\"gpt-4o-mini\"}" >/dev/null
+    "{\"enabled\":true,\"provider\":\"vertexai\",\"secretName\":\"${PACK_SECRET}\",\"model\":\"gemini-2.5-flash\"}" >/dev/null
   pass "Enabled PersonaPack"
 
   # ── Wait for stamped instance ──

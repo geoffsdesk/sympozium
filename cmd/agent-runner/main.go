@@ -60,7 +60,7 @@ func main() {
 
 	systemPrompt := getEnv("SYSTEM_PROMPT", "You are a helpful AI assistant.")
 	provider := strings.ToLower(getEnv("MODEL_PROVIDER", "vertexai"))
-	modelName := getEnv("MODEL_NAME", "gemini-2.0-flash")
+	modelName := getEnv("MODEL_NAME", "gemini-2.5-pro")
 	baseURL := strings.TrimRight(getEnv("MODEL_BASE_URL", ""), "/")
 	memoryEnabled := getEnv("MEMORY_ENABLED", "") == "true"
 	toolsEnabled := getEnv("TOOLS_ENABLED", "") == "true"

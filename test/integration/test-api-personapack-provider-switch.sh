@@ -17,8 +17,8 @@ PERSONA_NAME="switcher"
 INSTANCE_NAME="${PACK_NAME}-${PERSONA_NAME}"
 OPENAI_SECRET="${PACK_NAME}-openai-key"
 ANTHROPIC_SECRET="${PACK_NAME}-anthropic-key"
-OPENAI_MODEL="gpt-4o-mini"
-ANTHROPIC_MODEL="claude-3-5-sonnet"
+OPENAI_MODEL="gemini-2.5-flash"
+ANTHROPIC_MODEL="gemini-2.5-pro"
 EXPECTED_SKILLS_CSV="code-review,k8s-ops"
 
 RUN_OPENAI=""
@@ -247,8 +247,8 @@ main() {
 
   info "Running PersonaPack provider-switch propagation test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -276,22 +276,22 @@ EOF
   pass "Temporary PersonaPack created"
 
   info "Creating provider auth secrets"
-  kubectl create secret generic "$OPENAI_SECRET" --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-  kubectl create secret generic "$ANTHROPIC_SECRET" --from-literal=ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-${OPENAI_API_KEY}}" -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create secret generic "$OPENAI_SECRET" --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY}" -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create secret generic "$ANTHROPIC_SECRET" --from-literal=GOOGLE_API_KEY="${GOOGLE_API_KEY:-${GOOGLE_API_KEY}}" -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
   pass "Provider auth secrets ready"
 
   # Enable with OpenAI.
   info "Patching PersonaPack to OpenAI"
-  api_request PATCH "/api/v1/personapacks/${PACK_NAME}" "{\"enabled\":true,\"provider\":\"openai\",\"secretName\":\"${OPENAI_SECRET}\",\"model\":\"${OPENAI_MODEL}\"}" >/dev/null
+  api_request PATCH "/api/v1/personapacks/${PACK_NAME}" "{\"enabled\":true,\"provider\":\"vertexai\",\"secretName\":\"${OPENAI_SECRET}\",\"model\":\"${OPENAI_MODEL}\"}" >/dev/null
 
   inst_openai="$(wait_for_instance_model "$OPENAI_MODEL" || true)"
   [[ -n "$inst_openai" ]] || { fail "Timed out waiting for OpenAI instance propagation"; exit 1; }
-  assert_instance "$inst_openai" "openai" "$OPENAI_SECRET" "$OPENAI_MODEL"
+  assert_instance "$inst_openai" "vertexai" "$OPENAI_SECRET" "$OPENAI_MODEL"
   pass "OpenAI propagation to PersonaPack instance verified"
 
   run_openai_json="$(api_request POST "/api/v1/runs" "{\"instanceRef\":\"${INSTANCE_NAME}\",\"task\":\"provider switch openai run\"}")"
   RUN_OPENAI="$(printf "%s" "$run_openai_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("metadata",{}).get("name",""))')"
-  assert_run "$run_openai_json" "openai" "$OPENAI_SECRET" "$OPENAI_MODEL"
+  assert_run "$run_openai_json" "vertexai" "$OPENAI_SECRET" "$OPENAI_MODEL"
   pass "OpenAI propagation to new runs verified"
 
   # Switch to Anthropic.
@@ -300,12 +300,12 @@ EOF
 
   inst_anthropic="$(wait_for_instance_model "$ANTHROPIC_MODEL" || true)"
   [[ -n "$inst_anthropic" ]] || { fail "Timed out waiting for Anthropic instance propagation"; exit 1; }
-  assert_instance "$inst_anthropic" "anthropic" "$ANTHROPIC_SECRET" "$ANTHROPIC_MODEL"
+  assert_instance "$inst_anthropic" "vertexai" "$ANTHROPIC_SECRET" "$ANTHROPIC_MODEL"
   pass "Anthropic propagation to PersonaPack instance verified"
 
   run_anthropic_json="$(api_request POST "/api/v1/runs" "{\"instanceRef\":\"${INSTANCE_NAME}\",\"task\":\"provider switch anthropic run\"}")"
   RUN_ANTHROPIC="$(printf "%s" "$run_anthropic_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("metadata",{}).get("name",""))')"
-  assert_run "$run_anthropic_json" "anthropic" "$ANTHROPIC_SECRET" "$ANTHROPIC_MODEL"
+  assert_run "$run_anthropic_json" "vertexai" "$ANTHROPIC_SECRET" "$ANTHROPIC_MODEL"
   pass "Anthropic propagation to new runs verified"
 
   pass "PersonaPack provider-switch propagation test passed"

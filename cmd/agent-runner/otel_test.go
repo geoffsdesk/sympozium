@@ -36,7 +36,7 @@ func TestOTelSpanHierarchy(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]any{
 				"id": "msg_test", "type": "message", "role": "assistant",
-				"model":       "claude-sonnet-4-20250514",
+				"model":       "gemini-2.5-pro",
 				"content":     []map[string]string{{"type": "text", "text": "Hello!"}},
 				"stop_reason": "end_turn",
 				"usage":       map[string]int{"input_tokens": 10, "output_tokens": 5},
@@ -49,7 +49,7 @@ func TestOTelSpanHierarchy(t *testing.T) {
 		tracer := otel.Tracer("test")
 		ctx, rootSpan := tracer.Start(ctx, "test-root")
 
-		text, inTok, outTok, _, err := callAnthropic(ctx, "test-key", srv.URL, "claude-sonnet-4-20250514", "sys", "Say hello", nil)
+		text, inTok, outTok, _, err := callAnthropic(ctx, "test-key", srv.URL, "gemini-2.5-pro", "sys", "Say hello", nil)
 		if err != nil {
 			t.Fatalf("callAnthropic error: %v", err)
 		}
@@ -95,11 +95,11 @@ func TestOTelSpanHierarchy(t *testing.T) {
 		for _, a := range chatSpan.Attributes {
 			attrs[string(a.Key)] = a.Value.Emit()
 		}
-		if v, ok := attrs["gen_ai.system"]; !ok || v != "anthropic" {
-			t.Errorf("gen_ai.system = %q, want %q", v, "anthropic")
+		if v, ok := attrs["gen_ai.system"]; !ok || v != "vertexai" {
+			t.Errorf("gen_ai.system = %q, want %q", v, "vertexai")
 		}
-		if v, ok := attrs["gen_ai.request.model"]; !ok || v != "claude-sonnet-4-20250514" {
-			t.Errorf("gen_ai.request.model = %q, want %q", v, "claude-sonnet-4-20250514")
+		if v, ok := attrs["gen_ai.request.model"]; !ok || v != "gemini-2.5-pro" {
+			t.Errorf("gen_ai.request.model = %q, want %q", v, "gemini-2.5-pro")
 		}
 	})
 
@@ -114,7 +114,7 @@ func TestOTelSpanHierarchy(t *testing.T) {
 			if callCount == 1 {
 				json.NewEncoder(w).Encode(map[string]any{
 					"id": "msg_tool", "type": "message", "role": "assistant",
-					"model": "claude-sonnet-4-20250514",
+					"model": "gemini-2.5-pro",
 					"content": []map[string]any{
 						{"type": "tool_use", "id": "toolu_01X", "name": "read_file",
 							"input": map[string]string{"path": "/tmp/otel-test.txt"}},
@@ -127,7 +127,7 @@ func TestOTelSpanHierarchy(t *testing.T) {
 
 			json.NewEncoder(w).Encode(map[string]any{
 				"id": "msg_final", "type": "message", "role": "assistant",
-				"model":       "claude-sonnet-4-20250514",
+				"model":       "gemini-2.5-pro",
 				"content":     []map[string]any{{"type": "text", "text": "Done."}},
 				"stop_reason": "end_turn",
 				"usage":       map[string]int{"input_tokens": 20, "output_tokens": 5},
@@ -153,7 +153,7 @@ func TestOTelSpanHierarchy(t *testing.T) {
 		tracer := otel.Tracer("test")
 		ctx, rootSpan := tracer.Start(ctx, "test-root")
 
-		text, _, _, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "claude-sonnet-4-20250514", "sys", "Read file", tools)
+		text, _, _, toolCalls, err := callAnthropic(ctx, "key", srv.URL, "gemini-2.5-pro", "sys", "Read file", tools)
 		if err != nil {
 			t.Fatalf("callAnthropic error: %v", err)
 		}

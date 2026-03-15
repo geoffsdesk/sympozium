@@ -172,7 +172,7 @@ Adds a multi-stage Dockerfile for building and running labelynx in a container.
 
 \`\`\`bash
 docker build -t labelynx .
-docker run -e GITHUB_TOKEN=\$GITHUB_TOKEN -e OPENAI_API_KEY=\$OPENAI_API_KEY labelynx --repository owner/repo
+docker run -e GITHUB_TOKEN=\$GITHUB_TOKEN -e GOOGLE_API_KEY=\$GOOGLE_API_KEY labelynx --repository owner/repo
 \`\`\`
 
 Resolves #${issue_number}
@@ -213,7 +213,7 @@ services:
     build: .
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - RUST_LOG=${RUST_LOG:-info}
     command: ["--repository", "${TARGET_REPOSITORY:-owner/repo}"]
 EOF
@@ -305,7 +305,7 @@ Adds docker-compose for local dev and a GitHub Actions workflow for automated Do
 
 ## Changes
 
-- **docker-compose.yml**: Local development setup with env var passthrough for GITHUB_TOKEN, OPENAI_API_KEY, and TARGET_REPOSITORY
+- **docker-compose.yml**: Local development setup with env var passthrough for GITHUB_TOKEN, GOOGLE_API_KEY, and TARGET_REPOSITORY
 - **.github/workflows/docker.yml**: CI pipeline that:
   - Builds on push to main and version tags
   - Pushes to ghcr.io with semver, sha, and latest tags
@@ -362,7 +362,7 @@ docs_writer_readme() {
 docker build -t labelynx .
 docker run \
   -e GITHUB_TOKEN=your_token \
-  -e OPENAI_API_KEY=your_key \
+  -e GOOGLE_API_KEY=your_key \
   labelynx --repository owner/repo
 ```
 
@@ -372,7 +372,7 @@ For local development, use docker-compose:
 
 ```bash
 export GITHUB_TOKEN=your_token
-export OPENAI_API_KEY=your_key
+export GOOGLE_API_KEY=your_key
 export TARGET_REPOSITORY=owner/repo
 docker compose up --build
 ```
@@ -385,7 +385,7 @@ Pull the latest image from GitHub Container Registry:
 docker pull ghcr.io/alexsjones/labelynx:latest
 docker run \
   -e GITHUB_TOKEN=your_token \
-  -e OPENAI_API_KEY=your_key \
+  -e GOOGLE_API_KEY=your_key \
   ghcr.io/alexsjones/labelynx:latest --repository owner/repo
 ```
 
@@ -394,7 +394,7 @@ docker run \
 ```bash
 docker run \
   -e GITHUB_TOKEN=your_token \
-  -e OPENAI_API_KEY=your_key \
+  -e GOOGLE_API_KEY=your_key \
   labelynx --repository owner/repo --dry-run
 ```
 EOF

@@ -181,16 +181,16 @@ main() {
 
   info "Running AgentRun container-shape test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
   start_port_forward_if_needed
   resolve_apiserver_token
 
-  api_request POST "/api/v1/instances" "{\"name\":\"${PLAIN_INSTANCE}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\"}" >/dev/null
-  api_request POST "/api/v1/instances" "{\"name\":\"${SKILL_INSTANCE}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\",\"skills\":[{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
+  api_request POST "/api/v1/instances" "{\"name\":\"${PLAIN_INSTANCE}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\"}" >/dev/null
+  api_request POST "/api/v1/instances" "{\"name\":\"${SKILL_INSTANCE}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\",\"skills\":[{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
 
   plain_run_json="$(api_request POST "/api/v1/runs" "{\"instanceRef\":\"${PLAIN_INSTANCE}\",\"task\":\"pod shape plain\"}")"
   PLAIN_RUN="$(printf "%s" "$plain_run_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("metadata",{}).get("name",""))')"

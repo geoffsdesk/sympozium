@@ -140,7 +140,7 @@ export function RunsPage() {
                     onChange={(e) =>
                       setForm({ ...form, model: e.target.value })
                     }
-                    placeholder="gpt-4o"
+                    placeholder="gemini-2.5-pro"
                   />
                 </div>
                 <div className="space-y-2">

@@ -11,7 +11,7 @@
 # Prerequisites:
 #   - Kind cluster running with Sympozium installed
 #   - k8s-ops SkillPack CRD applied (kubectl get skillpack k8s-ops -n sympozium-system)
-#   - An OpenAI API key in the environment (OPENAI_API_KEY) or an existing
+#   - An OpenAI API key in the environment (GOOGLE_API_KEY) or an existing
 #     secret named "inttest-openai-key" in the default namespace
 #
 # Usage:
@@ -25,7 +25,7 @@ NAMESPACE="${TEST_NAMESPACE:-default}"
 INSTANCE_NAME="inttest-k8s-ops"
 RUN_NAME="inttest-k8s-ops-nodes"
 SECRET_NAME="inttest-openai-key"
-MODEL="${TEST_MODEL:-gpt-4o-mini}"
+MODEL="${TEST_MODEL:-gemini-2.5-flash}"
 TIMEOUT="${TEST_TIMEOUT:-180}"  # longer timeout — skill sidecar image pull
 
 RED='\033[0;31m'
@@ -67,15 +67,15 @@ fi
 
 # --- Ensure OpenAI secret exists ---
 if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        fail "No OPENAI_API_KEY set and secret '$SECRET_NAME' not found."
-        echo "  Either: export OPENAI_API_KEY=sk-..."
-        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=OPENAI_API_KEY=sk-..."
+    if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+        fail "No GOOGLE_API_KEY set and secret '$SECRET_NAME' not found."
+        echo "  Either: export GOOGLE_API_KEY=sk-..."
+        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=GOOGLE_API_KEY=sk-..."
         exit 1
     fi
-    info "Creating secret $SECRET_NAME from OPENAI_API_KEY env var"
+    info "Creating secret $SECRET_NAME from GOOGLE_API_KEY env var"
     kubectl create secret generic "$SECRET_NAME" \
-        --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
+        --from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY" \
         -n "$NAMESPACE"
 fi
 

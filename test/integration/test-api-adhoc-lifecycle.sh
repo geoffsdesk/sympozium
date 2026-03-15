@@ -146,8 +146,8 @@ main() {
 
   info "Running ad-hoc instance lifecycle test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -156,7 +156,7 @@ main() {
 
   # ── 1) Create ad-hoc instance with skills ──
   api_request POST "/api/v1/instances" \
-    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\",\"skills\":[{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
+    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\",\"skills\":[{\"skillPackRef\":\"k8s-ops\"}]}" >/dev/null
   pass "Created ad-hoc instance '${INSTANCE_NAME}'"
 
   # ── Verify instance appears in list ──
@@ -176,12 +176,12 @@ main() {
   inst_secret="$(printf "%s" "$inst_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); refs=d.get("spec",{}).get("authRefs",[]); print(refs[0].get("secret","") if refs else "")')"
   inst_skills="$(printf "%s" "$inst_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); s=[i.get("skillPackRef","") for i in d.get("spec",{}).get("skills",[])]; print(",".join(sorted(s)))')"
 
-  if [[ "$inst_model" != "gpt-4o-mini" ]]; then
-    fail "Instance model mismatch (got '${inst_model}', want 'gpt-4o-mini')"
+  if [[ "$inst_model" != "gemini-2.5-flash" ]]; then
+    fail "Instance model mismatch (got '${inst_model}', want 'gemini-2.5-flash')"
     exit 1
   fi
-  if [[ "$inst_provider" != "openai" ]]; then
-    fail "Instance provider mismatch (got '${inst_provider}', want 'openai')"
+  if [[ "$inst_provider" != "vertexai" ]]; then
+    fail "Instance provider mismatch (got '${inst_provider}', want 'vertexai')"
     exit 1
   fi
   if [[ -z "$inst_secret" ]]; then
@@ -218,11 +218,11 @@ main() {
   run_skills="$(printf "%s" "$run_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); s=[i.get("skillPackRef","") for i in d.get("spec",{}).get("skills",[])]; print(",".join(sorted(s)))')"
   run_instance_ref="$(printf "%s" "$run_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("spec",{}).get("instanceRef",""))')"
 
-  if [[ "$run_provider" != "openai" ]]; then
+  if [[ "$run_provider" != "vertexai" ]]; then
     fail "Run provider not inherited (got '${run_provider}')"
     exit 1
   fi
-  if [[ "$run_model" != "gpt-4o-mini" ]]; then
+  if [[ "$run_model" != "gemini-2.5-flash" ]]; then
     fail "Run model not inherited (got '${run_model}')"
     exit 1
   fi

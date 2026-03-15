@@ -11,10 +11,10 @@ APISERVER_URL="${APISERVER_URL:-http://127.0.0.1:19090}"
 PORT_FORWARD_LOCAL_PORT="${APISERVER_PORT:-19090}"
 SKIP_PORT_FORWARD="${SKIP_PORT_FORWARD:-0}"
 
-CLAUDE_TOKEN="${CLAUDE_TOKEN:-}"
+GEMINI_TOKEN="${GEMINI_TOKEN:-}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
-CLAUDE_INSTANCE_NAME="inttest-api-claude-instance-$(date +%s)"
+GEMINI_INSTANCE_NAME="inttest-api-gemini-instance-$(date +%s)"
 GITHUB_SECRET_NAME="github-gitops-token"
 
 RED='\033[0;31m'
@@ -55,11 +55,11 @@ stop_port_forward() {
 
 cleanup() {
   info "Cleaning up capability API test resources..."
-  api_request DELETE "/api/v1/instances/${CLAUDE_INSTANCE_NAME}" >/dev/null 2>&1 || true
-  # kubectl fallback: instance, auto-created anthropic secret, configmaps
-  kubectl delete sympoziuminstance "$CLAUDE_INSTANCE_NAME" -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1 || true
-  kubectl delete secret "${CLAUDE_INSTANCE_NAME}-anthropic-key" -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1 || true
-  kubectl delete configmap -n "$NAMESPACE" -l "sympozium.ai/instance=${CLAUDE_INSTANCE_NAME}" --ignore-not-found >/dev/null 2>&1 || true
+  api_request DELETE "/api/v1/instances/${GEMINI_INSTANCE_NAME}" >/dev/null 2>&1 || true
+  # kubectl fallback: instance, auto-created vertexai secret, configmaps
+  kubectl delete sympoziuminstance "$GEMINI_INSTANCE_NAME" -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1 || true
+  kubectl delete secret "${GEMINI_INSTANCE_NAME}-vertexai-key" -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1 || true
+  kubectl delete configmap -n "$NAMESPACE" -l "sympozium.ai/instance=${GEMINI_INSTANCE_NAME}" --ignore-not-found >/dev/null 2>&1 || true
 
   if [[ "$HAD_GITHUB_SECRET" == "true" && -n "$ORIGINAL_GITHUB_TOKEN_B64" ]]; then
     kubectl patch secret "$GITHUB_SECRET_NAME" -n "$APISERVER_NAMESPACE" --type=merge -p "{\"data\":{\"GH_TOKEN\":\"${ORIGINAL_GITHUB_TOKEN_B64}\"}}" >/dev/null 2>&1 || true
@@ -166,29 +166,29 @@ main() {
 
   local_ran="false"
 
-  if [[ -n "$CLAUDE_TOKEN" ]]; then
+  if [[ -n "$GEMINI_TOKEN" ]]; then
     local_ran="true"
-    info "Validating Anthropic provider wiring via CLAUDE_TOKEN"
+    info "Validating Gemini provider wiring via GEMINI_TOKEN"
 
-    api_request POST "/api/v1/instances" "{\"name\":\"${CLAUDE_INSTANCE_NAME}\",\"provider\":\"anthropic\",\"model\":\"claude-3-5-sonnet\",\"apiKey\":\"${CLAUDE_TOKEN}\"}" >/dev/null
+    api_request POST "/api/v1/instances" "{\"name\":\"${GEMINI_INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-pro\",\"apiKey\":\"${GEMINI_TOKEN}\"}" >/dev/null
 
-    inst_json="$(api_request GET "/api/v1/instances/${CLAUDE_INSTANCE_NAME}")"
+    inst_json="$(api_request GET "/api/v1/instances/${GEMINI_INSTANCE_NAME}")"
     provider="$(printf "%s" "$inst_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); refs=d.get("spec",{}).get("authRefs",[]); print(refs[0].get("provider","") if refs else "")')"
     secret_name="$(printf "%s" "$inst_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); refs=d.get("spec",{}).get("authRefs",[]); print(refs[0].get("secret","") if refs else "")')"
 
-    if [[ "$provider" != "anthropic" ]]; then
-      fail "Anthropic auth ref provider mismatch (got '${provider}')"
+    if [[ "$provider" != "vertexai" ]]; then
+      fail "Gemini auth ref provider mismatch (got '${provider}')"
       exit 1
     fi
     if [[ -z "$secret_name" ]]; then
-      fail "Anthropic auth ref secret not set"
+      fail "Gemini auth ref secret not set"
       exit 1
     fi
     kubectl get secret "$secret_name" -n "$NAMESPACE" >/dev/null
 
-    pass "Anthropic provider auth wiring validated"
+    pass "Gemini provider auth wiring validated"
   else
-    info "CLAUDE_TOKEN not set — skipping Anthropic capability check"
+    info "GEMINI_TOKEN not set — skipping Gemini capability check"
   fi
 
   if [[ -n "$GITHUB_TOKEN" ]]; then
@@ -220,7 +220,7 @@ main() {
   fi
 
   if [[ "$local_ran" != "true" ]]; then
-    info "No optional tokens provided; capability checks skipped (set CLAUDE_TOKEN and/or GITHUB_TOKEN)"
+    info "No optional tokens provided; capability checks skipped (set GEMINI_TOKEN and/or GITHUB_TOKEN)"
   fi
 
   pass "Optional capability API tests passed"

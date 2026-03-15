@@ -11,12 +11,12 @@
 #
 # Prerequisites:
 #   - Kind cluster running with Sympozium installed
-#   - An Anthropic API key in the environment (ANTHROPIC_API_KEY) or an existing
+#   - An Anthropic API key in the environment (GOOGLE_API_KEY) or an existing
 #     secret named "inttest-anthropic-key" in the default namespace
 #
 # Usage:
-#   ANTHROPIC_API_KEY=sk-ant-... ./test/integration/test-anthropic-write-file.sh
-#   TEST_MODEL=claude-sonnet-4-20250514 ./test/integration/test-anthropic-write-file.sh
+#   GOOGLE_API_KEY=sk-ant-... ./test/integration/test-anthropic-write-file.sh
+#   TEST_MODEL=gemini-2.5-pro ./test/integration/test-anthropic-write-file.sh
 #   TEST_TIMEOUT=180 ./test/integration/test-anthropic-write-file.sh
 
 set -euo pipefail
@@ -26,7 +26,7 @@ NAMESPACE="${TEST_NAMESPACE:-default}"
 INSTANCE_NAME="inttest-anthropic-write"
 RUN_NAME="inttest-anthropic-write-run"
 SECRET_NAME="inttest-anthropic-key"
-MODEL="${TEST_MODEL:-claude-sonnet-4-20250514}"
+MODEL="${TEST_MODEL:-gemini-2.5-pro}"
 TIMEOUT="${TEST_TIMEOUT:-120}"             # seconds to wait for completion
 MARKER_TEXT="sympozium-anthropic-ok"        # text the agent must write
 TARGET_FILE="/workspace/anthropic-test.txt"
@@ -63,15 +63,15 @@ fi
 
 # --- Ensure Anthropic secret exists ---
 if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-    if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-        fail "No ANTHROPIC_API_KEY set and secret '$SECRET_NAME' not found."
-        echo "  Either: export ANTHROPIC_API_KEY=sk-ant-..."
-        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=ANTHROPIC_API_KEY=sk-ant-..."
+    if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+        fail "No GOOGLE_API_KEY set and secret '$SECRET_NAME' not found."
+        echo "  Either: export GOOGLE_API_KEY=sk-ant-..."
+        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=GOOGLE_API_KEY=sk-ant-..."
         exit 1
     fi
-    info "Creating secret $SECRET_NAME from ANTHROPIC_API_KEY env var"
+    info "Creating secret $SECRET_NAME from GOOGLE_API_KEY env var"
     kubectl create secret generic "$SECRET_NAME" \
-        --from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+        --from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY" \
         -n "$NAMESPACE"
 fi
 

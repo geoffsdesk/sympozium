@@ -143,8 +143,8 @@ main() {
 
   info "Running web-endpoint API test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -154,7 +154,7 @@ main() {
   # --- Create a plain instance (no web-endpoint) ---
   info "Creating test instance"
   api_request POST "/api/v1/instances" \
-    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\"}" >/dev/null
+    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\"}" >/dev/null
   pass "Instance created"
 
   # --- Check web-endpoint status (should be disabled) ---

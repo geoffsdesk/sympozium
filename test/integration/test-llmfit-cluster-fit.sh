@@ -12,7 +12,7 @@
 #   - Kind cluster running with Sympozium installed
 #   - llmfit SkillPack applied (kubectl get skillpack llmfit -n sympozium-system)
 #   - llmfit sidecar image available in cluster registry/runtime
-#   - OPENAI_API_KEY env var set, or secret inttest-openai-key in namespace
+#   - GOOGLE_API_KEY env var set, or secret inttest-openai-key in namespace
 #
 # Usage:
 #   ./test/integration/test-llmfit-cluster-fit.sh
@@ -25,7 +25,7 @@ NAMESPACE="${TEST_NAMESPACE:-default}"
 INSTANCE_NAME="inttest-llmfit"
 RUN_NAME="inttest-llmfit-fit"
 SECRET_NAME="inttest-openai-key"
-MODEL="${TEST_MODEL:-gpt-4o-mini}"
+MODEL="${TEST_MODEL:-gemini-2.5-flash}"
 TIMEOUT="${TEST_TIMEOUT:-240}"
 TARGET_MODEL_QUERY="${TEST_LLMFIT_MODEL_QUERY:-Qwen2.5}"
 
@@ -66,15 +66,15 @@ if ! kubectl get skillpack llmfit -n sympozium-system >/dev/null 2>&1; then
 fi
 
 if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        fail "No OPENAI_API_KEY set and secret '$SECRET_NAME' not found."
-        echo "  Either: export OPENAI_API_KEY=sk-..."
-        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=OPENAI_API_KEY=sk-..."
+    if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+        fail "No GOOGLE_API_KEY set and secret '$SECRET_NAME' not found."
+        echo "  Either: export GOOGLE_API_KEY=sk-..."
+        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=GOOGLE_API_KEY=sk-..."
         exit 1
     fi
-    info "Creating secret $SECRET_NAME from OPENAI_API_KEY env var"
+    info "Creating secret $SECRET_NAME from GOOGLE_API_KEY env var"
     kubectl create secret generic "$SECRET_NAME" \
-        --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
+        --from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY" \
         -n "$NAMESPACE"
 fi
 

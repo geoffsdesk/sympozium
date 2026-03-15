@@ -24,7 +24,7 @@ ADHOC_SECRET_NAME="${ADHOC_INSTANCE_NAME}-openai-key"
 
 GITHUB_REPO="octocat/Hello-World"
 TEAM_TASK="Build the v2 REST API with backward compatibility"
-MODEL_NAME="gpt-4o-mini"
+MODEL_NAME="gemini-2.5-flash"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -284,13 +284,13 @@ EOF
 
   # Create auth secret.
   kubectl create secret generic "$PACK_SECRET_NAME" \
-    --from-literal=OPENAI_API_KEY="inttest-dummy-key" \
+    --from-literal=GOOGLE_API_KEY="inttest-dummy-key" \
     -n "$NAMESPACE" \
     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
   # Enable the pack.
   api_request PATCH "/api/v1/personapacks/${PACK_NAME}" \
-    "{\"enabled\":true,\"provider\":\"openai\",\"secretName\":\"${PACK_SECRET_NAME}\",\"model\":\"${MODEL_NAME}\"}" >/dev/null
+    "{\"enabled\":true,\"provider\":\"vertexai\",\"secretName\":\"${PACK_SECRET_NAME}\",\"model\":\"${MODEL_NAME}\"}" >/dev/null
 
   # Wait for the controller to stamp out the instance.
   elapsed=0

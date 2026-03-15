@@ -77,13 +77,13 @@ func resolveProvider(inst *sympoziumv1alpha1.SympoziumInstance) string {
 	}
 	// Fallback: guess from secret name (e.g. "<inst>-openai-key").
 	for _, ref := range inst.Spec.AuthRefs {
-		for _, p := range []string{"anthropic", "azure-openai", "ollama", "openai"} {
+		for _, p := range []string{"vertexai", "gemini", "self-hosted"} {
 			if strings.Contains(ref.Secret, p) {
 				return p
 			}
 		}
 	}
-	return "openai"
+	return "vertexai"
 }
 
 // resolveAuthSecret returns the first non-empty auth secret reference.

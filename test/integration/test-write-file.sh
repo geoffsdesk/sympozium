@@ -11,12 +11,12 @@
 #
 # Prerequisites:
 #   - Kind cluster running with Sympozium installed
-#   - An OpenAI API key in the environment (OPENAI_API_KEY) or an existing
+#   - An OpenAI API key in the environment (GOOGLE_API_KEY) or an existing
 #     secret named "inttest-openai-key" in the default namespace
 #
 # Usage:
 #   ./test/integration/test-write-file.sh
-#   OPENAI_API_KEY=sk-... ./test/integration/test-write-file.sh
+#   GOOGLE_API_KEY=sk-... ./test/integration/test-write-file.sh
 #   TEST_TIMEOUT=180 ./test/integration/test-write-file.sh
 
 set -euo pipefail
@@ -26,7 +26,7 @@ NAMESPACE="${TEST_NAMESPACE:-default}"
 INSTANCE_NAME="inttest-write-file"
 RUN_NAME="inttest-write-file-run"
 SECRET_NAME="inttest-openai-key"
-MODEL="${TEST_MODEL:-gpt-4o-mini}"
+MODEL="${TEST_MODEL:-gemini-2.5-flash}"
 TIMEOUT="${TEST_TIMEOUT:-120}"             # seconds to wait for completion
 MARKER_TEXT="sympozium-integration-ok"      # text the agent must write
 TARGET_FILE="/workspace/test-output.txt"
@@ -65,15 +65,15 @@ fi
 
 # --- Ensure OpenAI secret exists ---
 if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        fail "No OPENAI_API_KEY set and secret '$SECRET_NAME' not found."
-        echo "  Either: export OPENAI_API_KEY=sk-..."
-        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=OPENAI_API_KEY=sk-..."
+    if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+        fail "No GOOGLE_API_KEY set and secret '$SECRET_NAME' not found."
+        echo "  Either: export GOOGLE_API_KEY=sk-..."
+        echo "  Or:     kubectl create secret generic $SECRET_NAME --from-literal=GOOGLE_API_KEY=sk-..."
         exit 1
     fi
-    info "Creating secret $SECRET_NAME from OPENAI_API_KEY env var"
+    info "Creating secret $SECRET_NAME from GOOGLE_API_KEY env var"
     kubectl create secret generic "$SECRET_NAME" \
-        --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
+        --from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY" \
         -n "$NAMESPACE"
 fi
 

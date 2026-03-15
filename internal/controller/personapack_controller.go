@@ -357,7 +357,7 @@ func (r *PersonaPackReconciler) buildInstance(
 ) *sympoziumv1alpha1.SympoziumInstance {
 	model := persona.Model
 	if model == "" {
-		model = "gpt-4o" // sensible default; overridden by onboarding
+		model = "gemini-2.5-pro" // sensible default; overridden by onboarding
 	}
 
 	inst := &sympoziumv1alpha1.SympoziumInstance{

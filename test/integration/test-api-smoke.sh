@@ -277,7 +277,7 @@ main() {
 
   # 5) Ad-hoc Instance create/list/get
   create_instance_body="$(cat <<EOF
-{"name":"${INSTANCE_NAME}","provider":"openai","model":"gpt-4o-mini"}
+{"name":"${INSTANCE_NAME}","provider":"vertexai","model":"gemini-2.5-flash"}
 EOF
 )"
   api_post /api/v1/instances "$create_instance_body" >/dev/null

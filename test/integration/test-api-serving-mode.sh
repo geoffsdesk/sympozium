@@ -170,8 +170,8 @@ main() {
 
   info "Running serving-mode API test in namespace '${NAMESPACE}'"
 
-  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-    fail "OPENAI_API_KEY environment variable is required but not set"
+  if [[ -z "${GOOGLE_API_KEY:-}" ]]; then
+    fail "GOOGLE_API_KEY environment variable is required but not set"
     exit 1
   fi
 
@@ -181,7 +181,7 @@ main() {
   # --- Create instance with web-endpoint skill ---
   info "Creating instance with web-endpoint skill"
   api_request POST "/api/v1/instances" \
-    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"openai\",\"model\":\"gpt-4o-mini\",\"apiKey\":\"${OPENAI_API_KEY}\",\"skills\":[{\"skillPackRef\":\"web-endpoint\"}]}" >/dev/null
+    "{\"name\":\"${INSTANCE_NAME}\",\"provider\":\"vertexai\",\"model\":\"gemini-2.5-flash\",\"apiKey\":\"${GOOGLE_API_KEY}\",\"skills\":[{\"skillPackRef\":\"web-endpoint\"}]}" >/dev/null
   pass "Instance with web-endpoint created"
 
   # --- Wait for a Serving-phase AgentRun ---

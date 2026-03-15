@@ -101,7 +101,7 @@ sleep 2
 # --- Step 3: Create dummy secret for Ollama auth ---
 info "Creating dummy API key secret: $SECRET_NAME"
 kubectl create secret generic "$SECRET_NAME" \
-    --from-literal=OPENAI_API_KEY="ollama-no-key-required" \
+    --from-literal=GOOGLE_API_KEY="ollama-no-key-required" \
     -n "$NAMESPACE" >/dev/null 2>&1 || true
 
 # --- Step 4: Create SympoziumInstance for Ollama ---
