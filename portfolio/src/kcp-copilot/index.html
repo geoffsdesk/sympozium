@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KCP Copilot - AI-powered GKE Control Plane TUI</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #4285f4;
+      --green: #34a853;
+      --yellow: #fbbc04;
+      --red: #ea4335;
+      --surface: #0a0c10;
+      --surface-2: #12151c;
+      --surface-3: #1a1e28;
+      --border: #252a36;
+      --text: #e8eaed;
+      --text-muted: #8b929a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: #5a9bff;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header Navigation */
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10, 12, 16, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 120px 0;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 64px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .subtitle {
+      font-size: 24px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge.live {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .badge.live::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hero-description {
+      max-width: 600px;
+      margin: 0 auto 48px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a9bff;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Section Styling */
+    section {
+      padding: 80px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+      max-width: 600px;
+    }
+
+    /* Architecture Section */
+    .architecture-container {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      margin-top: 32px;
+    }
+
+    .architecture-diagram {
+      width: 100%;
+      height: auto;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .feature-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--blue);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(66, 133, 244, 0.1);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--surface-3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 24px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* Dashboard Section */
+    .dashboard-section {
+      margin-top: 48px;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(52, 168, 83, 0.1);
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .dashboard-info {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .dashboard-frame {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+
+    .dashboard-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Tools Table */
+    .tools-table {
+      margin-top: 48px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .tools-table th {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .tools-table td {
+      border: 1px solid var(--border);
+      padding: 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .tools-table tr:hover {
+      background: var(--surface-2);
+    }
+
+    .tool-name {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Quick Start Section */
+    .quick-start-container {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin-top: 48px;
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    .code-block pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--green);
+    }
+
+    .code-comment {
+      color: var(--text-muted);
+    }
+
+    .code-key {
+      color: var(--blue);
+    }
+
+    .code-value {
+      color: var(--yellow);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 40px;
+      }
+
+      .hero .subtitle {
+        font-size: 18px;
+      }
+
+      h2 {
+        font-size: 32px;
+      }
+
+      .nav-links {
+        gap: 16px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">KCP Copilot</div>
+        <nav>
+          <ul class="nav-links">
+            <li><a href="https://geoffsdesk.com">← Portfolio</a></li>
+            <li><a href="https://github.com/geoffsdesk/kcp-copilot">GitHub</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>KCP Copilot</h1>
+      <p class="subtitle">AI-powered GKE Control Plane TUI</p>
+
+      <div class="badges">
+        <span class="badge live">Live</span>
+        <span class="badge">Rust</span>
+        <span class="badge">Go</span>
+        <span class="badge">Claude</span>
+        <span class="badge">Gemini</span>
+      </div>
+
+      <p class="hero-description">
+        Talk to your Kubernetes cluster in natural language. Reason across both the Kubernetes API and GKE API simultaneously. Dual-model architecture: Claude for interactive NLP reasoning, Gemini for proactive background monitoring.
+      </p>
+
+      <div class="cta-buttons">
+        <a href="https://github.com/geoffsdesk/kcp-copilot" class="btn btn-primary">View on GitHub</a>
+        <a href="https://geoffsdesk.com" class="btn btn-secondary">Back to Portfolio</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Section -->
+  <section>
+    <div class="container">
+      <h2>Architecture</h2>
+      <p class="section-subtitle">Component flow showing how KCP Copilot orchestrates multiple APIs with dual AI models for intelligent cluster reasoning.</p>
+
+      <div class="architecture-container">
+        <svg class="architecture-diagram" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+          <!-- Define gradients -->
+          <defs>
+            <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#4285f4;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#1f5dd9;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#34a853;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#188038;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+
+          <!-- Background -->
+          <rect width="1200" height="600" fill="none"/>
+
+          <!-- Layer 1: User & TUI -->
+          <g>
+            <rect x="30" y="30" width="160" height="120" rx="8" fill="url(#blueGradient)" opacity="0.2" stroke="#4285f4" stroke-width="2"/>
+            <text x="110" y="65" font-family="Inter, sans-serif" font-size="16" font-weight="600" fill="#4285f4" text-anchor="middle">User</text>
+            <text x="110" y="95" font-family="Inter, sans-serif" font-size="13" fill="#e8eaed" text-anchor="middle">ratatui + crossterm</text>
+            <text x="110" y="115" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">Rust TUI</text>
+          </g>
+
+          <!-- Arrow TUI to Go Agent -->
+          <g>
+            <path d="M 190 90 L 320 90" stroke="#4285f4" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+            <text x="255" y="75" font-family="Inter, sans-serif" font-size="11" fill="#8b929a" text-anchor="middle">gRPC</text>
+          </g>
+
+          <!-- Layer 2: Go Agent -->
+          <g>
+            <rect x="320" y="30" width="160" height="120" rx="8" fill="url(#greenGradient)" opacity="0.2" stroke="#34a853" stroke-width="2"/>
+            <text x="400" y="65" font-family="Inter, sans-serif" font-size="16" font-weight="600" fill="#34a853" text-anchor="middle">Go Agent</text>
+            <text x="400" y="95" font-family="Inter, sans-serif" font-size="13" fill="#e8eaed" text-anchor="middle">In-cluster gRPC</text>
+            <text x="400" y="115" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">ServiceAccount RBAC</text>
+          </g>
+
+          <!-- Layer 3: APIs - Left side -->
+          <!-- K8s API -->
+          <g>
+            <rect x="30" y="250" width="180" height="140" rx="8" fill="url(#blueGradient)" opacity="0.2" stroke="#4285f4" stroke-width="2"/>
+            <text x="120" y="280" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#4285f4" text-anchor="middle">Kubernetes API</text>
+            <text x="120" y="305" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• GetPods</text>
+            <text x="120" y="322" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• GetEvents</text>
+            <text x="120" y="339" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• GetLogs</text>
+            <text x="120" y="356" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Scale/Rollback</text>
+          </g>
+
+          <!-- Arrow Go Agent to K8s -->
+          <path d="M 340 150 L 150 250" stroke="#4285f4" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+          <!-- GKE API -->
+          <g>
+            <rect x="520" y="250" width="180" height="140" rx="8" fill="url(#greenGradient)" opacity="0.2" stroke="#34a853" stroke-width="2"/>
+            <text x="610" y="280" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#34a853" text-anchor="middle">GKE API</text>
+            <text x="610" y="305" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Cluster Info</text>
+            <text x="610" y="322" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Node Pools</text>
+            <text x="610" y="339" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Upgrades</text>
+            <text x="610" y="356" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Security Posture</text>
+          </g>
+
+          <!-- Arrow Go Agent to GKE -->
+          <path d="M 440 150 L 610 250" stroke="#34a853" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+          <!-- GMP/Prometheus -->
+          <g>
+            <rect x="1010" y="250" width="160" height="140" rx="8" fill="url(#blueGradient)" opacity="0.2" stroke="#4285f4" stroke-width="2"/>
+            <text x="1090" y="280" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#4285f4" text-anchor="middle">GMP/Prometheus</text>
+            <text x="1090" y="305" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• API Latency</text>
+            <text x="1090" y="322" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• etcd Health</text>
+            <text x="1090" y="339" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• Scheduler Perf</text>
+            <text x="1090" y="356" font-family="JetBrains Mono, monospace" font-size="11" fill="#8b929a" text-anchor="middle">• PromQL</text>
+          </g>
+
+          <!-- Arrow Go Agent to GMP -->
+          <path d="M 480 150 L 1010 320" stroke="#fbbc04" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+          <!-- Layer 4: AI Models -->
+          <!-- Claude -->
+          <g>
+            <rect x="30" y="450" width="180" height="120" rx="8" fill="url(#blueGradient)" opacity="0.2" stroke="#4285f4" stroke-width="2"/>
+            <text x="120" y="485" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#4285f4" text-anchor="middle">Claude API</text>
+            <text x="120" y="510" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Interactive NLP</text>
+            <text x="120" y="530" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Reasoning & Tool</text>
+            <text x="120" y="550" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Selection</text>
+          </g>
+
+          <!-- Arrow TUI to Claude -->
+          <path d="M 110 150 L 110 450" stroke="#4285f4" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+          <!-- Gemini -->
+          <g>
+            <rect x="560" y="450" width="180" height="120" rx="8" fill="url(#greenGradient)" opacity="0.2" stroke="#34a853" stroke-width="2"/>
+            <text x="650" y="485" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#34a853" text-anchor="middle">Gemini API</text>
+            <text x="650" y="510" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Background Monitoring</text>
+            <text x="650" y="530" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Proactive Insights</text>
+            <text x="650" y="550" font-family="Inter, sans-serif" font-size="12" fill="#e8eaed" text-anchor="middle">Real-time Analysis</text>
+          </g>
+
+          <!-- Arrow TUI to Gemini -->
+          <path d="M 180 150 L 650 450" stroke="#34a853" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+
+          <!-- Arrow marker definition -->
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <polygon points="0 0, 10 3, 0 6" fill="#8b929a"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section>
+    <div class="container">
+      <h2>Features</h2>
+      <p class="section-subtitle">Comprehensive tools for intelligent cluster management and monitoring.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Natural Language Queries</h3>
+          <p>Ask "what pods are failing?" or "why is redis crashlooping?" — Claude translates your questions to intelligent gRPC calls and provides actionable insights.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">☁️</div>
+          <h3>GKE API Integration</h3>
+          <p>Access control plane data not available in kubectl — node pools, upgrade info, maintenance windows, security posture, and cluster operations.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Live Metrics</h3>
+          <p>Query GMP/Prometheus for control plane metrics — API server latency, etcd health, scheduler performance, and more with PromQL support.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>Dual-Model Architecture</h3>
+          <p>Claude for interactive reasoning and decision-making. Gemini for proactive background monitoring with real-time insights and anomaly detection.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>In-Cluster Agent</h3>
+          <p>Go gRPC server with Workload Identity, RBAC-scoped ServiceAccount, and zero credentials to manage. Secure by default with minimal configuration.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⌨️</div>
+          <h3>TUI Interface</h3>
+          <p>Full terminal UI with chat panel, cluster overview, Gemini insights feed, and keyboard navigation for a seamless command-line experience.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Control Plane Dashboard -->
+  <section>
+    <div class="container">
+      <h2>Live Control Plane Metrics</h2>
+      <p class="section-subtitle">Real-time monitoring of your GKE control plane health and performance.</p>
+
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        Live metrics from running cluster
+      </div>
+
+      <div class="dashboard-info">
+        ✓ These are real metrics from the running GKE cluster. The dashboards below show actual API server, etcd, and scheduler performance.
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-frame">
+          <iframe src="/grafana/d/gke-control-plane/gke-control-plane?orgId=1&from=now-6h&to=now&theme=dark&kiosk" title="GKE Control Plane Dashboard"></iframe>
+        </div>
+        <div class="dashboard-frame">
+          <iframe src="/grafana/d/gke-control-plane/gke-control-plane?orgId=1&from=now-6h&to=now&theme=dark&viewPanel=1&kiosk" title="API Server Panel"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- gRPC Tools Section -->
+  <section>
+    <div class="container">
+      <h2>Available gRPC Tools</h2>
+      <p class="section-subtitle">Comprehensive tool coverage for cluster introspection, management, and monitoring.</p>
+
+      <table class="tools-table">
+        <thead>
+          <tr>
+            <th style="width: 200px;">API Category</th>
+            <th style="width: 400px;">Available Tools</th>
+            <th style="color: var(--text-muted);">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="tool-name">Kubernetes API</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">GetPods • GetEvents • GetLogs • DescribeResource • GetClusterOverview • ScaleDeployment • RollbackDeployment</td>
+            <td>Core pod and workload introspection, lifecycle management, and resource description.</td>
+          </tr>
+          <tr>
+            <td class="tool-name">GKE API</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">GetGKEClusterInfo • GetNodePools • GetUpgradeInfo • GetMaintenanceWindows • GetSecurityPosture • GetClusterOperations</td>
+            <td>Control plane operations, cluster configuration, and security posture information.</td>
+          </tr>
+          <tr>
+            <td class="tool-name">Monitoring</td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">QueryMetrics</td>
+            <td>PromQL queries via Google Managed Prometheus for control plane performance metrics.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Quick Start Section -->
+  <section>
+    <div class="container">
+      <h2>Quick Start</h2>
+      <p class="section-subtitle">Get KCP Copilot running in minutes on your GKE cluster.</p>
+
+      <div class="quick-start-container">
+        <h3 style="color: var(--text); margin-bottom: 20px;">Setup & Run</h3>
+        <div class="code-block">
+          <pre><span class="code-comment"># Port-forward the agent</span>
+kubectl port-forward svc/kcp-agent 50051:50051 -n sympozium-showcase
+
+<span class="code-comment"># Set API keys and run</span>
+<span class="code-key">export</span> <span class="code-value">ANTHROPIC_API_KEY</span>=<span class="code-value">"sk-ant-..."</span>
+<span class="code-key">export</span> <span class="code-value">GEMINI_API_KEY</span>=<span class="code-value">"AIza..."</span>  <span class="code-comment"># optional</span>
+<span class="code-key">cd</span> tui && cargo run</pre>
+        </div>
+
+        <p style="margin-top: 24px; color: var(--text-muted); font-size: 14px;">
+          The gRPC agent runs in your cluster with RBAC-scoped permissions. Your API keys are only stored locally in the TUI environment.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="https://geoffsdesk.com">← Back to Portfolio</a>
+        <a href="https://github.com/geoffsdesk/kcp-copilot">View on GitHub</a>
+        <a href="https://github.com/geoffsdesk/kcp-copilot/issues">Report Issues</a>
+      </div>
+      <p>&copy; 2024–2026 KCP Copilot. Built with Rust, Go, and Claude. Deployed on GKE.</p>
+    </div>
+  </footer>
+</body>
+</html>
