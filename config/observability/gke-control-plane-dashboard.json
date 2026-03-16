@@ -372,251 +372,6 @@
         "x": 0,
         "y": 9
       },
-      "id": 6,
-      "targets": [],
-      "title": "etcd",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "gmp"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "latency (s)",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 10
-      },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.99, rate(etcd_request_duration_seconds_bucket[5m]))",
-          "legendFormat": "{{ operation }}",
-          "refId": "A"
-        }
-      ],
-      "title": "etcd Request Latency P99",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "gmp"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "result": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Healthy"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#34a853",
-                "value": null
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 10
-      },
-      "id": 8,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "gauge",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "fields": "",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "text": {}
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "expr": "etcd_db_total_size_in_bytes",
-          "legendFormat": "DB Size",
-          "refId": "A"
-        }
-      ],
-      "title": "etcd DB Size",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "gmp"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 10
-      },
-      "id": 9,
-      "options": {
-        "displayLabels": [
-          "name",
-          "percent"
-        ],
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        },
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "fields": "",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "etcd_object_counts",
-          "legendFormat": "{{ resource }}",
-          "refId": "A"
-        }
-      ],
-      "title": "etcd Object Counts",
-      "type": "bargauge"
-    },
-    {
-      "collapsed": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "gmp"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 18
-      },
       "id": 10,
       "targets": [],
       "title": "Scheduler & Controller Manager",
@@ -680,7 +435,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 19
+        "y": 10
       },
       "id": 11,
       "options": {
@@ -763,7 +518,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 19
+        "y": 10
       },
       "id": 12,
       "options": {
@@ -846,7 +601,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 19
+        "y": 10
       },
       "id": 13,
       "options": {
@@ -885,7 +640,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 18
       },
       "id": 14,
       "targets": [],
@@ -920,7 +675,7 @@
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 28
+        "y": 19
       },
       "id": 15,
       "options": {
@@ -976,7 +731,7 @@
         "h": 8,
         "w": 6,
         "x": 6,
-        "y": 28
+        "y": 19
       },
       "id": 16,
       "options": {
@@ -1066,7 +821,7 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 28
+        "y": 19
       },
       "id": 17,
       "options": {
@@ -1135,7 +890,7 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 28
+        "y": 19
       },
       "id": 18,
       "options": {
