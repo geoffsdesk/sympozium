@@ -5,6 +5,7 @@ import mdx from '@astrojs/mdx';
 
 export default defineConfig({
   integrations: [react(), tailwind(), mdx()],
-  site: 'https://geoffsdesk.com',  // Replace with your domain
+  site: 'https://geoffsdesk.com',
+  base: '/sympozium',
   output: 'static',
 });

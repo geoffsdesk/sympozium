@@ -1,0 +1,61 @@
+# GMP Query Frontend: provides a Prometheus-compatible query API
+# that reads from Google Managed Prometheus data.
+# Grafana connects to this service to query metrics via PromQL.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      automountServiceAccountToken: true
+      containers:
+        - name: frontend
+          image: us-central1-artifactregistry.gcr.io/gke-release/gke-release/prometheus-engine/frontend:v0.17.3-gke.0
+          args:
+            - "--web.listen-address=:9090"
+            - "--query.project-id=first-cascade-490202-e3"
+          ports:
+            - name: web
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: default
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: web
+      port: 9090
+      targetPort: web

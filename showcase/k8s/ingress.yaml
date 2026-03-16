@@ -1,8 +1,8 @@
 # GKE Ingress with Google-managed TLS certificate.
 # Routes:
-#   /            → showcase-site (Astro static)
+#   /            → portfolio-site (landing page)
+#   /sympozium/  → showcase-site (Sympozium showcase)
 #   /grafana/    → Grafana (live dashboards)
-#   /api/        → Sympozium API Server (web UI + REST API)
 #
 # Prerequisites:
 #   - GKE cluster with HTTP(S) load balancing enabled
@@ -16,7 +16,7 @@ metadata:
   namespace: sympozium-showcase
 spec:
   domains:
-    - YOUR_DOMAIN_HERE   # e.g., sympozium.yourdomain.dev
+    - geoffsdesk.com   # e.g., sympozium.yourdomain.dev
 ---
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
@@ -49,7 +49,7 @@ metadata:
     kubernetes.io/ingress.allow-http: "true"
 spec:
   rules:
-    - host: YOUR_DOMAIN_HERE
+    - host: geoffsdesk.com
       http:
         paths:
           - path: /grafana
@@ -59,10 +59,17 @@ spec:
                 name: grafana
                 port:
                   number: 3000
-          - path: /
+          - path: /sympozium
             pathType: Prefix
             backend:
               service:
                 name: showcase-site
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: portfolio-site
                 port:
                   number: 80

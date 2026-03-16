@@ -1,5 +1,59 @@
 ---
 import Base from '../layouts/Base.astro';
+
+const gcpProducts = [
+  {
+    category: "Compute & Orchestration",
+    color: "var(--gcp-blue)",
+    items: [
+      { name: "Google Kubernetes Engine", desc: "Managed K8s cluster", url: "https://cloud.google.com/kubernetes-engine" },
+      { name: "Workload Identity Federation", desc: "Keyless pod auth to GCP APIs", url: "https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity" },
+      { name: "Cloud TPU", desc: "TPU v5e for Gemma inference", url: "https://cloud.google.com/tpu" },
+    ]
+  },
+  {
+    category: "AI & Inference",
+    color: "var(--gcp-green)",
+    items: [
+      { name: "Vertex AI Gemini API", desc: "Flash, Pro, and Preview tiers", url: "https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini" },
+      { name: "Gemma Open Models", desc: "Self-hosted on GKE GPU/TPU", url: "https://cloud.google.com/vertex-ai/generative-ai/docs/open-models/use-gemma" },
+    ]
+  },
+  {
+    category: "Messaging & Events",
+    color: "var(--gcp-yellow)",
+    items: [
+      { name: "Cloud Pub/Sub", desc: "Event bus for agent IPC", url: "https://cloud.google.com/pubsub" },
+      { name: "Google Chat API", desc: "Cards v2, slash commands", url: "https://developers.google.com/workspace/chat" },
+    ]
+  },
+  {
+    category: "Data & Storage",
+    color: "var(--gcp-blue)",
+    items: [
+      { name: "Cloud SQL (PostgreSQL)", desc: "Platform state and config", url: "https://cloud.google.com/sql" },
+      { name: "Firestore", desc: "Agent memory and transcripts", url: "https://cloud.google.com/firestore" },
+      { name: "Secret Manager", desc: "Credentials and API keys", url: "https://cloud.google.com/secret-manager" },
+    ]
+  },
+  {
+    category: "Observability",
+    color: "var(--gcp-green)",
+    items: [
+      { name: "Cloud Trace", desc: "Distributed tracing via OTel", url: "https://cloud.google.com/trace" },
+      { name: "Cloud Monitoring", desc: "Metrics and alerting", url: "https://cloud.google.com/monitoring" },
+      { name: "Google Managed Prometheus", desc: "PromQL on GKE metrics", url: "https://cloud.google.com/stackdriver/docs/managed-prometheus" },
+    ]
+  },
+  {
+    category: "CI/CD & Registry",
+    color: "var(--gcp-red)",
+    items: [
+      { name: "Cloud Build", desc: "Container image pipelines", url: "https://cloud.google.com/build" },
+      { name: "Artifact Registry", desc: "Container image storage", url: "https://cloud.google.com/artifact-registry" },
+    ]
+  },
+];
 ---
 <Base title="Architecture">
 
@@ -8,98 +62,78 @@ import Base from '../layouts/Base.astro';
   <p>How Sympozium GCP maps Kubernetes primitives to AI agent orchestration — entirely on Google Cloud.</p>
 </section>
 
+<section class="arch-section">
+  <div class="arch-layout">
+    <div class="arch-diagram">
+      <img src="/sympozium/architecture.svg" alt="Sympozium GCP Architecture Diagram" width="720" height="900" />
+    </div>
+    <div class="arch-links">
+      <h2>GCP Services Used</h2>
+      <p class="links-desc">Every component runs on Google Cloud. Click any service to learn more.</p>
+      {gcpProducts.map((group) => (
+        <div class="link-group">
+          <div class="link-group-header" style={`border-left-color: ${group.color}`}>
+            {group.category}
+          </div>
+          {group.items.map((item) => (
+            <a href={item.url} target="_blank" rel="noopener" class="link-item">
+              <div class="link-name">
+                {item.name}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+              </div>
+              <div class="link-desc">{item.desc}</div>
+            </a>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
 <section class="content">
   <div class="content-inner">
-
-    <div class="arch-diagram">
-      <pre>{`
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           GKE Cluster                                       │
-│                                                                             │
-│  ┌─────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐ │
-│  │  Controller  │   │  API Server  │   │   Webhook    │   │  Web Proxy   │ │
-│  │  (reconcile) │   │  (REST + UI) │   │  (admission) │   │  (OpenAI-    │ │
-│  │              │   │              │   │              │   │   compat)    │ │
-│  └──────┬───────┘   └──────┬───────┘   └──────────────┘   └──────────────┘ │
-│         │                  │                                                │
-│         │    ┌─────────────┴────────────────┐                              │
-│         │    │     Cloud Pub/Sub             │                              │
-│         │    │     (Event Bus)               │                              │
-│         │    └──────────────────────────┬────┘                              │
-│         │                               │                                   │
-│  ┌──────▼───────────────────────────────▼──────────────────────────────┐   │
-│  │                        Agent Pods (Jobs)                            │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │   │
-│  │  │ agent-runner │  │ skill-sidecar│  │ tool-sidecar │                │   │
-│  │  │ (Gemini API) │  │ (gcloud,etc)│  │ (kubectl,etc)│                │   │
-│  │  └──────┬───────┘  └─────────────┘  └─────────────┘                │   │
-│  └─────────┼──────────────────────────────────────────────────────────┘   │
-│            │                                                               │
-│  ┌─────────▼─────────┐  ┌──────────────────┐  ┌────────────────────┐     │
-│  │   Vertex AI        │  │  Self-Hosted      │  │   Node Probe       │     │
-│  │   Gemini API       │  │  (vLLM/TGI/       │  │   DaemonSet        │     │
-│  │                    │  │   Gemma on TPU)   │  │   (GPU/TPU nodes)  │     │
-│  └────────────────────┘  └──────────────────┘  └────────────────────┘     │
-│                                                                             │
-│  ┌────────────────────────────────────────────────────────────────────┐    │
-│  │                    Observability Stack                              │    │
-│  │  OTel Collector → Cloud Trace + Cloud Monitoring                   │    │
-│  │                 → Prometheus (GMP) → Grafana                       │    │
-│  └────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐                  │
-│  │  Cloud SQL     │  │  Firestore    │  │  Secret Mgr   │                  │
-│  │  (PostgreSQL)  │  │  (Memory)     │  │  (Credentials)│                  │
-│  └───────────────┘  └───────────────┘  └───────────────┘                  │
-│                                                                             │
-│  ┌───────────────┐  ┌───────────────┐                                     │
-│  │  Google Chat   │  │  Discord      │     Channels (inbound)             │
-│  └───────────────┘  └───────────────┘                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-      `}</pre>
-    </div>
 
     <h2>What Changed from Upstream</h2>
 
     <div class="change-grid">
       <div class="change-card">
         <div class="change-before">OpenAI / Anthropic / Azure / Ollama</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Vertex AI Gemini (3 tiers) + Gemma 3 self-hosted</div>
       </div>
       <div class="change-card">
         <div class="change-before">NATS JetStream</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Cloud Pub/Sub</div>
       </div>
       <div class="change-card">
         <div class="change-before">Slack / Telegram / WhatsApp</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Google Chat (Cards v2, slash commands)</div>
       </div>
       <div class="change-card">
         <div class="change-before">Kubernetes Secrets</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Secret Manager + Workload Identity</div>
       </div>
       <div class="change-card">
         <div class="change-before">ConfigMap memory (1MB limit)</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Firestore (agent memory + transcripts)</div>
       </div>
       <div class="change-card">
         <div class="change-before">GitHub Actions + GHCR</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Cloud Build + Artifact Registry</div>
       </div>
       <div class="change-card">
         <div class="change-before">GPU-only inference</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">GPU + TPU v5e (GKE node labels)</div>
       </div>
       <div class="change-card">
         <div class="change-before">Generic OTel export</div>
-        <div class="change-arrow">→</div>
+        <div class="change-arrow">&rarr;</div>
         <div class="change-after">Cloud Monitoring + GMP + Grafana dashboards</div>
       </div>
     </div>
@@ -142,13 +176,54 @@ import Base from '../layouts/Base.astro';
   .page-header h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; }
   .page-header p { color: var(--text-muted); margin-top: 12px; font-size: 18px; }
 
+  .arch-section { padding: 40px 24px 0; }
+  .arch-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 340px; gap: 40px; align-items: start; }
+
+  .arch-diagram { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow: hidden; position: sticky; top: 80px; }
+  .arch-diagram img { width: 100%; height: auto; display: block; }
+
+  .arch-links h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .links-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+  .link-group { margin-bottom: 16px; }
+  .link-group-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    padding: 4px 0 4px 12px;
+    border-left: 3px solid;
+    margin-bottom: 6px;
+  }
+  .link-item {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .link-item:hover { background: var(--surface-2); }
+  .link-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gcp-blue);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .link-name svg { opacity: 0; transition: opacity 0.15s; }
+  .link-item:hover .link-name svg { opacity: 0.6; }
+  .link-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
   .content { padding: 40px 24px 80px; }
-  .content-inner { max-width: 1000px; margin: 0 auto; }
+  .content-inner { max-width: 1200px; margin: 0 auto; }
   .content-inner h2 { font-size: 28px; font-weight: 800; margin-top: 60px; margin-bottom: 20px; }
   .section-desc { color: var(--text-muted); margin-bottom: 24px; }
-
-  .arch-diagram { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; }
-  .arch-diagram pre { font-size: 12px; line-height: 1.4; color: var(--text-muted); white-space: pre; }
 
   .change-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .change-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
@@ -161,7 +236,9 @@ import Base from '../layouts/Base.astro';
   .crd-card code { font-size: 14px; font-weight: 600; color: var(--gcp-blue); }
   .crd-card p { font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-top: 8px; }
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
+    .arch-layout { grid-template-columns: 1fr; }
+    .arch-diagram { position: static; }
     .change-grid, .crd-grid { grid-template-columns: 1fr; }
   }
 </style>

@@ -32,19 +32,25 @@ import Base from '../layouts/Base.astro';
     </div>
 
     <div class="dash-section">
-      <h2>Sympozium Web UI</h2>
-      <p class="dash-desc">The built-in management console — instance status, agent runs, personas, skills, and policies.</p>
+      <h2>Errors & Infrastructure</h2>
+      <p class="dash-desc">Error rates, web endpoint health, and gateway readiness — the operational view.</p>
       <div class="grafana-embed">
-        <!-- Replace with the actual Sympozium API Server web UI URL -->
         <iframe
-          src="/grafana/d/sympozium-overview/sympozium-ai-agent-platform?orgId=1&from=now-6h&to=now&theme=dark&panelId=all&kiosk"
+          src="/grafana/d/sympozium-overview/sympozium-ai-agent-platform?orgId=1&from=now-6h&to=now&theme=dark&viewPanel=40&kiosk"
           width="100%"
-          height="700"
+          height="350"
+          frameborder="0"
+          loading="lazy"
+        ></iframe>
+        <iframe
+          src="/grafana/d/sympozium-overview/sympozium-ai-agent-platform?orgId=1&from=now-6h&to=now&theme=dark&viewPanel=41&kiosk"
+          width="100%"
+          height="350"
           frameborder="0"
           loading="lazy"
         ></iframe>
         <div class="embed-fallback">
-          <p>Web UI loading... The API server serves the React dashboard at /ui.</p>
+          <p>Dashboard loading... If this doesn't appear, ensure Grafana is configured for anonymous access.</p>
         </div>
       </div>
     </div>

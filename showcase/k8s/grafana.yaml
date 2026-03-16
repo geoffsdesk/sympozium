@@ -43,14 +43,10 @@ data:
     apiVersion: 1
     datasources:
       - name: Google Managed Prometheus
+        uid: gmp
         type: prometheus
         access: proxy
-        # For GMP: use the GMP query frontend service if running in-cluster,
-        # or the Cloud Monitoring Prometheus API endpoint.
-        # Option A (in-cluster GMP frontend, auto-deployed by GKE):
         url: http://frontend.default.svc:9090
-        # Option B (Cloud Monitoring API — replace YOUR_PROJECT_ID):
-        # url: https://monitoring.googleapis.com/v1/projects/YOUR_PROJECT_ID/location/global/prometheus
         isDefault: true
         editable: false
         jsonData:

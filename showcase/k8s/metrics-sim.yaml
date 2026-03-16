@@ -1,0 +1,69 @@
+# Metrics simulator: generates realistic Prometheus metrics for the
+# Sympozium Grafana dashboard showcase. Emits agent runs, token usage,
+# tool invocations, and platform health metrics every 5 seconds.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-sim
+  namespace: sympozium-showcase
+  labels:
+    app.kubernetes.io/name: metrics-sim
+    app.kubernetes.io/part-of: sympozium-showcase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: metrics-sim
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: metrics-sim
+        app.kubernetes.io/part-of: sympozium-showcase
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: metrics-sim
+          image: us-docker.pkg.dev/SHOWCASE_PROJECT_ID/sympozium/metrics-sim:latest
+          ports:
+            - name: metrics
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+---
+# PodMonitoring tells Google Managed Prometheus to scrape this pod
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: metrics-sim
+  namespace: sympozium-showcase
+  labels:
+    app.kubernetes.io/name: metrics-sim
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: metrics-sim
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
