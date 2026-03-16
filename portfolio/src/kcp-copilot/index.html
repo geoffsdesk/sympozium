@@ -423,6 +423,206 @@
       flex-wrap: wrap;
     }
 
+    /* Mock TUI */
+    .mock-tui {
+      margin-top: 32px;
+    }
+
+    .tui-chrome {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    .tui-header {
+      background: #161b22;
+      padding: 10px 16px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .tui-tab {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .tui-sep {
+      color: #30363d;
+    }
+
+    .tui-dot-green {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    .tui-dot-yellow {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--yellow);
+      border-radius: 50%;
+    }
+
+    .tui-body {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      min-height: 400px;
+    }
+
+    .tui-main {
+      border-right: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tui-panel-label {
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-bottom: 1px solid #30363d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tui-chat {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      max-height: 340px;
+    }
+
+    .tui-system {
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+
+    .tui-msg {
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .tui-msg-user {
+      color: var(--blue);
+    }
+
+    .tui-msg-user::before {
+      content: 'You: ';
+      font-weight: 600;
+    }
+
+    .tui-msg-ai {
+      color: var(--text);
+    }
+
+    .tui-msg-ai::before {
+      content: 'AI: ';
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .tui-msg-tool {
+      color: var(--yellow);
+      font-size: 12px;
+      padding: 4px 8px;
+      background: rgba(251, 188, 4, 0.05);
+      border-left: 2px solid var(--yellow);
+      margin: 4px 0;
+    }
+
+    .tui-input-area {
+      border-top: 1px solid #30363d;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+    }
+
+    .tui-prompt {
+      color: var(--green);
+      margin-right: 8px;
+      font-weight: 700;
+    }
+
+    .tui-input-text {
+      color: var(--text);
+    }
+
+    .tui-cursor {
+      color: var(--text);
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .tui-sidebar {
+      padding: 0;
+    }
+
+    .tui-sidebar-content {
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+
+    .tui-section-head {
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .tui-node, .tui-ns {
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tui-node-ver {
+      color: #484f58;
+      font-size: 11px;
+      margin: 2px 0 0 14px;
+    }
+
+    .tui-ns-count {
+      color: #484f58;
+      margin-left: auto;
+    }
+
+    .tui-warning {
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .tui-demo-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .tui-demo-btn {
+      min-width: 120px;
+    }
+
+    .tui-demo-hint {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .hero h1 {
@@ -451,6 +651,14 @@
 
       .btn {
         width: 100%;
+      }
+
+      .tui-body {
+        grid-template-columns: 1fr;
+      }
+
+      .tui-sidebar {
+        border-top: 1px solid #30363d;
       }
     }
   </style>
@@ -663,6 +871,70 @@
     </div>
   </section>
 
+  <!-- Interactive Mock TUI -->
+  <section>
+    <div class="container">
+      <h2>Try It Out</h2>
+      <p class="section-subtitle">A simulated demo of the KCP Copilot TUI — see how natural language queries translate to cluster insights.</p>
+
+      <div class="mock-tui">
+        <div class="tui-chrome">
+          <div class="tui-header">
+            <span class="tui-tab">KCP Copilot</span>
+            <span class="tui-sep">|</span>
+            <span style="color: var(--green);">Claude</span>
+            <span class="tui-dot-green"></span>
+            <span style="color: var(--text-muted);">Connected</span>
+            <span class="tui-sep">|</span>
+            <span style="color: var(--text-muted);">Gemini</span>
+            <span class="tui-dot-yellow"></span>
+            <span class="tui-sep">|</span>
+            <span style="color: var(--text-muted);">Ctrl+C quit</span>
+          </div>
+
+          <div class="tui-body">
+            <div class="tui-main">
+              <div class="tui-panel-label">Chat (Claude)</div>
+              <div class="tui-chat" id="tui-chat">
+                <div class="tui-system">Connected to GKE cluster. Ask me anything!</div>
+              </div>
+              <div class="tui-input-area">
+                <span class="tui-prompt">›</span>
+                <span class="tui-input-text" id="tui-input"></span>
+                <span class="tui-cursor" id="tui-cursor">█</span>
+              </div>
+            </div>
+
+            <div class="tui-sidebar">
+              <div class="tui-panel-label">Cluster Overview</div>
+              <div class="tui-sidebar-content">
+                <div class="tui-section-head">Nodes</div>
+                <div class="tui-node"><span class="tui-dot-green"></span> gke-sympozium-default-pool-...cbf6</div>
+                <div class="tui-node"><span class="tui-dot-green"></span> gke-sympozium-default-pool-...js03</div>
+                <div class="tui-node-ver">v1.34.4-gke.1047000</div>
+
+                <div class="tui-section-head" style="margin-top: 16px;">Namespaces</div>
+                <div class="tui-ns"><span class="tui-dot-green"></span> cert-manager <span class="tui-ns-count">(3/3)</span></div>
+                <div class="tui-ns"><span class="tui-dot-green"></span> default <span class="tui-ns-count">(1/1)</span></div>
+                <div class="tui-ns"><span class="tui-dot-green"></span> gmp-system <span class="tui-ns-count">(5/5)</span></div>
+                <div class="tui-ns"><span class="tui-dot-green"></span> kube-system <span class="tui-ns-count">(32/32)</span></div>
+                <div class="tui-ns"><span class="tui-dot-green"></span> sympozium-showcase <span class="tui-ns-count">(6/6)</span></div>
+
+                <div class="tui-section-head" style="margin-top: 16px;">Recent Warnings</div>
+                <div class="tui-warning">None — cluster healthy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tui-demo-controls">
+          <button class="btn btn-primary tui-demo-btn" id="demo-btn" onclick="startDemo()">Run Demo</button>
+          <span class="tui-demo-hint" id="demo-hint">Watch a simulated conversation with the cluster</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Live Control Plane Dashboard -->
   <section>
     <div class="container">
@@ -678,12 +950,9 @@
         ✓ These are real metrics from the running GKE cluster. The dashboards below show actual API server, etcd, and scheduler performance.
       </div>
 
-      <div class="dashboard-grid">
-        <div class="dashboard-frame">
+      <div class="dashboard-single">
+        <div class="dashboard-frame" style="aspect-ratio: 21/9; max-height: 600px;">
           <iframe src="/grafana/d/gke-control-plane/gke-control-plane?orgId=1&from=now-6h&to=now&theme=dark&kiosk" title="GKE Control Plane Dashboard"></iframe>
-        </div>
-        <div class="dashboard-frame">
-          <iframe src="/grafana/d/gke-control-plane/gke-control-plane?orgId=1&from=now-6h&to=now&theme=dark&viewPanel=1&kiosk" title="API Server Panel"></iframe>
         </div>
       </div>
     </div>
@@ -760,5 +1029,125 @@ kubectl port-forward svc/kcp-agent 50051:50051 -n sympozium-showcase
       <p>&copy; 2024–2026 KCP Copilot. Built with Rust, Go, and Claude. Deployed on GKE.</p>
     </div>
   </footer>
+  <script>
+    const demoConversation = [
+      {
+        type: 'user',
+        text: 'which pods are failing?'
+      },
+      {
+        type: 'tool',
+        text: '→ calling GetPods(all_namespaces=true, status_filter="unhealthy")'
+      },
+      {
+        type: 'ai',
+        text: 'Found 1 problem pod:\n\nsympozium-controller-manager-54c6986f56\n  Status: CrashLoopBackOff\n  Ready: 0/1\n  Restarts: 72\n  Age: 6h5m\n\nAll other 50 pods are healthy and fully ready.\n\nSuggested: "show me the logs for sympozium-controller-manager"'
+      },
+      {
+        type: 'user',
+        text: 'show me the logs for sympozium-controller-manager'
+      },
+      {
+        type: 'tool',
+        text: '→ calling GetLogs(pod="sympozium-controller-manager-54c6986f56", previous=true)'
+      },
+      {
+        type: 'ai',
+        text: 'The controller manager is crashing because it cannot connect to the NATS server at nats://nats:4222.\n\nThis is expected — the cluster was migrated from NATS to Cloud Pub/Sub. The controller manager config still references the old NATS endpoint.\n\nFix: Update the SYMPOZIUM_BROKER_URL env var to use the Pub/Sub topic, or disable the controller-manager deployment if it\'s no longer needed.'
+      },
+      {
+        type: 'user',
+        text: 'what is the current API server latency?'
+      },
+      {
+        type: 'tool',
+        text: '→ calling QueryMetrics(query="apiserver_request_duration_seconds{quantile=\\"0.99\\"}", type="instant")'
+      },
+      {
+        type: 'ai',
+        text: 'API Server P99 latency: 0.042s (42ms)\n\nThis is well within healthy bounds. GKE recommends <1s for P99. Your control plane is performing excellently.'
+      }
+    ];
+
+    let demoRunning = false;
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    async function typeText(el, text, speed) {
+      for (let i = 0; i < text.length; i++) {
+        el.textContent += text[i];
+        await sleep(speed);
+      }
+    }
+
+    async function startDemo() {
+      if (demoRunning) return;
+      demoRunning = true;
+
+      const btn = document.getElementById('demo-btn');
+      const hint = document.getElementById('demo-hint');
+      const chat = document.getElementById('tui-chat');
+      const input = document.getElementById('tui-input');
+      const cursor = document.getElementById('tui-cursor');
+
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      hint.textContent = 'Simulated demo in progress';
+
+      // Clear previous demo messages (keep system message)
+      const msgs = chat.querySelectorAll('.tui-msg');
+      msgs.forEach(m => m.remove());
+
+      for (const step of demoConversation) {
+        if (step.type === 'user') {
+          // Type in input field
+          input.textContent = '';
+          await typeText(input, step.text, 40);
+          await sleep(400);
+
+          // Move to chat
+          const msg = document.createElement('div');
+          msg.className = 'tui-msg tui-msg-user';
+          msg.textContent = step.text;
+          chat.appendChild(msg);
+          input.textContent = '';
+          chat.scrollTop = chat.scrollHeight;
+          await sleep(300);
+
+        } else if (step.type === 'tool') {
+          const msg = document.createElement('div');
+          msg.className = 'tui-msg tui-msg-tool';
+          msg.textContent = step.text;
+          chat.appendChild(msg);
+          chat.scrollTop = chat.scrollHeight;
+          await sleep(800);
+
+        } else if (step.type === 'ai') {
+          const msg = document.createElement('div');
+          msg.className = 'tui-msg tui-msg-ai';
+          chat.appendChild(msg);
+
+          const lines = step.text.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (i > 0) {
+              msg.appendChild(document.createElement('br'));
+            }
+            const span = document.createElement('span');
+            msg.appendChild(span);
+            await typeText(span, lines[i], 12);
+            chat.scrollTop = chat.scrollHeight;
+          }
+          await sleep(1000);
+        }
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Replay Demo';
+      hint.textContent = 'Demo complete — click to replay';
+      demoRunning = false;
+    }
+  </script>
 </body>
 </html>
